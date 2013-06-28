@@ -7,6 +7,8 @@ import json
 import time
 import urllib2
 
+from feed import *
+
 def decode(s):
     for e in encodings.aliases.aliases.values():
         try:
@@ -25,7 +27,15 @@ class FeedModel(db.Model):
     def fromDict(self, dic):
         self.name = dic['name']
         self.url = dic['url']
-        #self.body = decode(urllib2.urlopen(self.url).read())
+        self.updateEntries()
+
+    def updateEntries(self):
+        self.body = decode(urllib2.urlopen(self.url).read())
+
+        entries = []
+        parser = FeedParserBuilder.build(self.body)
+        for entry in parser.entries():
+            
 
     def toDict(self):
         return {'name': self.name,
@@ -35,8 +45,10 @@ class FeedModel(db.Model):
                 #'body': self.body,
                   'id': self.key().id()}
 
-class FeedItemModel(db.Model):
+class EntryModel(db.Model):
     feed = db.ReferenceProperty(FeedModel)
+    title = db.StringProperty(multiline=False)
+    url = db.StringProperty(multiline=False)
 
 class HandlerBase(webapp.RequestHandler):
     def dumpsJSON(self, obj):

@@ -46,7 +46,7 @@ class AtomParser(FeedParser):
                 continue
             
             entry = {'title': self.getNodeData(child.getElementsByTagName('title')[0]),
-                      'link': child.getElementsByTagName('link')[0].getAttribute('href')}
+                      'url': child.getElementsByTagName('link')[0].getAttribute('href')}
             entries.append(entry)
 
         return entries
