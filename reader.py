@@ -5,7 +5,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 import encodings
 import json
 import time
-import urllib2
+
 
 from feed import *
 
@@ -17,11 +17,12 @@ def decode(s):
             pass
     return s
 
+
 class FeedModel(db.Model):
     name = db.StringProperty(multiline=False)
     url = db.StringProperty(multiline=False)
-    created = db.DateTimeProperty(auto_now_add = True)
-    modified = db.DateTimeProperty(auto_now = True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    modified = db.DateTimeProperty(auto_now=True)
     body = db.TextProperty()
 
     def fromDict(self, dic):
@@ -39,16 +40,18 @@ class FeedModel(db.Model):
 
     def toDict(self):
         return {'name': self.name,
-                 'url': self.url,
-             'created': int(time.mktime(self.created.timetuple())),
-            'modified': int(time.mktime(self.modified.timetuple())),
+                'url': self.url,
+                'created': int(time.mktime(self.created.timetuple())),
+                'modified': int(time.mktime(self.modified.timetuple())),
                 #'body': self.body,
-                  'id': self.key().id()}
+                'id': self.key().id()}
+
 
 class EntryModel(db.Model):
     feed = db.ReferenceProperty(FeedModel)
     title = db.StringProperty(multiline=False)
     url = db.StringProperty(multiline=False)
+
 
 class HandlerBase(webapp.RequestHandler):
     def dumpsJSON(self, obj):
@@ -56,6 +59,7 @@ class HandlerBase(webapp.RequestHandler):
 
     def loadsJSON(self, text):
         return json.loads(text)
+
 
 class FeedCollectionHandler(HandlerBase):
     def get(self):
@@ -76,10 +80,11 @@ class FeedCollectionHandler(HandlerBase):
 
         self.response.out.write(self.dumpsJSON(feed.toDict()))
 
+
 class FeedHandler(HandlerBase):
     def getFeed(self, feedId):
         feed = FeedModel.get_by_id(long(feedId))
-        if feed == None:
+        if feed:
             self.error(404)
             self.response.out.write(self.dumpsJSON({}))
         return feed
@@ -88,22 +93,23 @@ class FeedHandler(HandlerBase):
         self.response.headers['Content-Type'] = 'application/json'
 
         feed = self.getFeed(feedId)
-        if feed != None:
+        if feed:
             self.response.out.write(self.dumpsJSON(feed.toDict()))
 
     def post(self, feedId):
         self.response.headers['Content-Type'] = 'application/json'
 
         feed = self.getFeed(feedId)
-        if feed != None:
+        if feed:
             feed.fromDict(self.loadsJSON(self.request.body))
             feed.put()
             self.response.out.write(self.dumpsJSON(feed.toDict()))
 
 application = webapp.WSGIApplication(
     [('/feed/?', FeedCollectionHandler),
-    ('/feed/(\d+)/?', FeedHandler)],
+     ('/feed/(\d+)/?', FeedHandler)],
     debug=True)
+
 
 def main():
     run_wsgi_app(application)
