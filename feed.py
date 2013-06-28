@@ -1,5 +1,5 @@
 from xml.dom import minidom
-
+import hashlib
 
 class FeedParserBuilder(object):
     @classmethod
@@ -8,9 +8,9 @@ class FeedParserBuilder(object):
 
         parsers = [AtomParser]
         for parser in parsers:
-            f = parser.parse(dom)
-            if (f):
-                return f
+            feedParser = parser.parse(dom)
+            if feedParser:
+                return feedParser
 
         return None
 
@@ -48,8 +48,13 @@ class AtomParser(FeedParser):
             if child.nodeType != child.ELEMENT_NODE or child.nodeName != 'entry':
                 continue
 
-            entry = {'title': self.getNodeData(child.getElementsByTagName('title')[0]),
-                     'url': child.getElementsByTagName('link')[0].getAttribute('href')}
+            title = self.getNodeData(child.getElementsByTagName('title')[0])
+            url = child.getElementsByTagName('link')[0].getAttribute('href')
+            key = 'entry-' + hashlib.md5(title + url).hexdigest()
+
+            entry = {'title': title,
+                     'url': url,
+                     'key': key}
             entries.append(entry)
 
         return entries
