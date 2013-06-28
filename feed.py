@@ -1,19 +1,21 @@
 from xml.dom import minidom
 
-class FeedParserBuilder():
+
+class FeedParserBuilder(object):
     @classmethod
     def build(cls, text):
         dom = minidom.parseString(text)
 
-        parsers = [ AtomParser ]
+        parsers = [AtomParser]
         for parser in parsers:
             f = parser.parse(dom)
-            if (f != None):
+            if (f):
                 return f
 
         return None
 
-class FeedParser():
+
+class FeedParser(object):
     doc = None
 
     @classmethod
@@ -26,6 +28,7 @@ class FeedParser():
                 return node.data
 
         return None
+
 
 class AtomParser(FeedParser):
     @classmethod
@@ -44,9 +47,9 @@ class AtomParser(FeedParser):
         for child in self.doc.childNodes:
             if child.nodeType != child.ELEMENT_NODE or child.nodeName != 'entry':
                 continue
-            
+
             entry = {'title': self.getNodeData(child.getElementsByTagName('title')[0]),
-                      'link': child.getElementsByTagName('link')[0].getAttribute('href')}
+                     'link': child.getElementsByTagName('link')[0].getAttribute('href')}
             entries.append(entry)
 
         return entries
