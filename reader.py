@@ -121,6 +121,18 @@ class FeedCollectionHandler(HandlerBase):
 
         self.response.out.write(self.dumpsJSON(feed.toDict()))
 
+class FeedUpdateHandler(HandlerBase):
+    def get(self):
+        self.response.headers['Content-Type'] = 'application/json'
+
+        feeds = []
+        for feed in FeedModel.all():
+            feed.put()
+            feed.updateEntries()
+            feeds.append(feed.toDict())
+
+        self.response.out.write(self.dumpsJSON({'feeds': feeds}))
+
 class FeedHandler(HandlerBase):
     def get(self, feedId):
         self.response.headers['Content-Type'] = 'application/json'
@@ -176,6 +188,7 @@ class ReadUnreadHandler(HandlerBase):
 application = webapp.WSGIApplication(
     #[('/feed/import', FeedImportHandler),
     [('/feed', FeedCollectionHandler),
+     ('/feed/update', FeedUpdateHandler),
      ('/feed/(\d+)', FeedHandler),
      ('/feed/(\d+)/(entry-[a-z0-9]+)/(read|unread)', ReadUnreadHandler)],
     debug=True)
