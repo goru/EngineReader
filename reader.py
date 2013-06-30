@@ -35,7 +35,12 @@ class FeedModel(db.Model):
         parser = FeedParserBuilder.build(xml)
         for entryDict in parser.entries():
             key = entryDict['key']
-            entry = EntryModel.get_or_insert(key, parent=self, feed=self)
+
+            entry = EntryModel.get_by_key_name(key, parent=self)
+            if not entry:
+                entry = EntryModel(parent=self, key_name=key)
+                entry.read = False
+
             entry.fromDict(entryDict)
             entry.put()
             entries.append(entry)
@@ -53,6 +58,7 @@ class EntryModel(db.Model):
     feed = db.ReferenceProperty(FeedModel)
     title = db.StringProperty(multiline=False)
     url = db.StringProperty(multiline=False)
+    desc = db.TextProperty()
     read = db.BooleanProperty()
     created = db.DateTimeProperty(auto_now_add=True)
     modified = db.DateTimeProperty(auto_now=True)
@@ -60,11 +66,12 @@ class EntryModel(db.Model):
     def fromDict(self, dic):
         self.title = dic['title']
         self.url = dic['url']
-        self.read = False
+        self.desc = dic['description']
 
     def toDict(self):
         return {'title': self.title,
                 'url': self.url,
+                'description': self.desc,
                 'read': self.read,
                 'created': int(time.mktime(self.created.timetuple())),
                 'modified': int(time.mktime(self.modified.timetuple())),
