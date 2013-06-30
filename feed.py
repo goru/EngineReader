@@ -1,11 +1,12 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from xml.dom import minidom
 import hashlib
 
 class FeedParserBuilder(object):
     @classmethod
-    def build(cls, text):
-        dom = minidom.parseString(text)
-
+    def build(cls, dom):
         parsers = [AtomParser, Rss1Parser, Rss2Parser]
         for parser in parsers:
             feedParser = parser.parse(dom)

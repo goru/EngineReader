@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
@@ -22,6 +25,9 @@ def decode(string):
 
     return string
 
+def parseString(string):
+    return minidom.parseString(string.encode('ascii', 'xmlcharrefreplace'))
+
 class FeedModel(db.Model):
     name = db.StringProperty(multiline=False)
     url = db.StringProperty(multiline=False)
@@ -33,10 +39,10 @@ class FeedModel(db.Model):
         self.url = dic['url']
 
     def updateEntries(self):
-        xml = decode(urllib2.urlopen(self.url).read())
+        dom = parseString(decode(urllib2.urlopen(self.url).read()))
 
         entries = []
-        parser = FeedParserBuilder.build(xml)
+        parser = FeedParserBuilder.build(dom)
         for entryDict in parser.entries():
             key = entryDict['key']
 
@@ -127,7 +133,7 @@ class FeedImportHandler(HandlerBase):
         self.response.headers['Content-Type'] = 'application/json'
 
         feeds = []
-        dom = minidom.parseString(self.request.body)
+        dom = parseString(decode(self.request.body))
         for outline in dom.documentElement.getElementsByTagName('outline'):
             if outline.getAttribute('type') != 'rss':
                 continue
