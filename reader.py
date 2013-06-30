@@ -49,6 +49,7 @@ class FeedModel(db.Model):
             entry = EntryModel.get_by_key_name(key, parent=self)
             if not entry:
                 entry = EntryModel(parent=self, key_name=key)
+                entry.feed = self
                 entry.read = False
 
             entry.fromDict(entryDict)
