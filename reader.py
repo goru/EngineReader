@@ -10,11 +10,14 @@ import urllib2
 from feed import *
 
 def decode(string):
-    for enc in encodings.aliases.aliases.values():
-        try:
-            return string.decode(enc)
-        except:
-            pass
+    try:
+        return string.decode('utf8')
+    except:
+        for enc in encodings.aliases.aliases.values():
+            try:
+                return string.decode(enc)
+            except:
+                pass
 
     return string
 
