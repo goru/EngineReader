@@ -6,6 +6,7 @@ import encodings
 import json
 import time
 import urllib2
+from xml.dom import minidom
 
 from feed import *
 
@@ -121,6 +122,28 @@ class FeedCollectionHandler(HandlerBase):
 
         self.response.out.write(self.dumpsJSON(feed.toDict()))
 
+class FeedImportHandler(HandlerBase):
+    def post(self):
+        self.response.headers['Content-Type'] = 'application/json'
+
+        feeds = []
+        dom = minidom.parseString(self.request.body)
+        for outline in dom.documentElement.getElementsByTagName('outline'):
+            if outline.getAttribute('type') != 'rss':
+                continue
+
+            title = outline.getAttribute('title')
+            url = outline.getAttribute('xmlUrl')
+
+            feed = FeedModel()
+            feed.name = title
+            feed.url = url
+            feed.put()
+            feed.updateEntries()
+            feeds.append(feed.toDict())
+
+        self.response.out.write(self.dumpsJSON({'feeds': feeds}))
+
 class FeedUpdateHandler(HandlerBase):
     def get(self):
         self.response.headers['Content-Type'] = 'application/json'
@@ -186,8 +209,8 @@ class ReadUnreadHandler(HandlerBase):
         feed.put()
 
 application = webapp.WSGIApplication(
-    #[('/feed/import', FeedImportHandler),
     [('/feed', FeedCollectionHandler),
+     ('/feed/import', FeedImportHandler),
      ('/feed/update', FeedUpdateHandler),
      ('/feed/(\d+)', FeedHandler),
      ('/feed/(\d+)/(entry-[a-z0-9]+)/(read|unread)', ReadUnreadHandler)],

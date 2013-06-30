@@ -94,7 +94,9 @@ class Rss1Parser(FeedParser):
 
             title = self.getNodeData(child.getElementsByTagName('title')[0])
             url = self.getNodeData(child.getElementsByTagName('link')[0])
-            desc = self.getNodeData(child.getElementsByTagName('description')[0])
+            desc = ''
+            if child.getElementsByTagName('description').length > 0:
+                desc = self.getNodeData(child.getElementsByTagName('description')[0])
 
             entry = {'title': title,
                      'url': url,
@@ -127,7 +129,9 @@ class Rss2Parser(FeedParser):
 
             title = self.getNodeData(child.getElementsByTagName('title')[0])
             url = self.getNodeData(child.getElementsByTagName('link')[0])
-            desc = self.getNodeData(child.getElementsByTagName('description')[0])
+            desc = ''
+            if child.getElementsByTagName('description').length > 0:
+                desc = self.getNodeData(child.getElementsByTagName('description')[0])
 
             entry = {'title': title,
                      'url': url,
