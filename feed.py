@@ -119,7 +119,7 @@ class Rss2Parser(FeedParser):
     def entries(self):
         entries = []
 
-        channel = child.getElementsByTagName('channel')[0]
+        channel = self.document.getElementsByTagName('channel')[0]
 
         for child in channel.childNodes:
             if child.nodeType != child.ELEMENT_NODE or child.nodeName != 'item':
