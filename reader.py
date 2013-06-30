@@ -87,6 +87,20 @@ class HandlerBase(webapp.RequestHandler):
     def loadsJSON(self, text):
         return json.loads(text)
 
+    def writeNotFound(self):
+        self.error(404)
+        self.response.out.write(self.dumpsJSON({}))
+
+    def getFeed(self, feedId):
+        return FeedModel.get_by_id(long(feedId))
+
+    def getEntry(self, feedId, entryId):
+        feed = self.getFeed(feedId)
+        if not feed:
+            return None
+
+        return EntryModel.get_by_key_name(entryId, parent=feed)
+
 class FeedCollectionHandler(HandlerBase):
     def get(self):
         self.response.headers['Content-Type'] = 'application/json'
@@ -108,19 +122,12 @@ class FeedCollectionHandler(HandlerBase):
         self.response.out.write(self.dumpsJSON(feed.toDict()))
 
 class FeedHandler(HandlerBase):
-    def getFeed(self, feedId):
-        feed = FeedModel.get_by_id(long(feedId))
-        if not feed:
-            self.error(404)
-            self.response.out.write(self.dumpsJSON({}))
-
-        return feed
-
     def get(self, feedId):
         self.response.headers['Content-Type'] = 'application/json'
 
         feed = self.getFeed(feedId)
         if not feed:
+            self.writeNotFound()
             return
 
         entries = []
@@ -136,11 +143,12 @@ class FeedHandler(HandlerBase):
 
         feed = self.getFeed(feedId)
         if not feed:
+            self.writeNotFound()
             return
 
         feed.fromDict(self.loadsJSON(self.request.body))
         feed.put()
-        
+
         entries = []
         for entry in feed.updateEntries():
             entries.append(entry.toDict())
@@ -149,9 +157,27 @@ class FeedHandler(HandlerBase):
             {'feed': feed.toDict(),
              'entries': entries}))
 
+class ReadUnreadHandler(HandlerBase):
+    def post(self, feedId, entryId, action):
+        self.response.headers['Content-Type'] = 'application/json'
+
+        feed = self.getEntry(feedId, entryId)
+        if not feed:
+            self.writeNotFound()
+            return
+
+        if action == 'read':
+            feed.read = True
+        elif action == 'unread':
+            feed.read = False
+
+        feed.put()
+
 application = webapp.WSGIApplication(
-    [('/feed/?', FeedCollectionHandler),
-     ('/feed/(\d+)/?', FeedHandler)],
+    #[('/feed/import', FeedImportHandler),
+    [('/feed', FeedCollectionHandler),
+     ('/feed/(\d+)', FeedHandler),
+     ('/feed/(\d+)/(entry-[a-z0-9]+)/(read|unread)', ReadUnreadHandler)],
     debug=True)
 
 def main():
