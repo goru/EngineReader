@@ -1,29 +1,19 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
 
-from xml.dom import minidom
 import hashlib
 
-class FeedParserFactory(object):
-    @classmethod
-    def create(cls, dom):
-        parsers = [AtomParser, Rss1Parser, Rss2Parser]
-        for parser in parsers:
-            feedParser = parser.parse(dom)
-            if feedParser:
-                return feedParser
+import util
 
-        return None
-
-class FeedParser(object):
+class XmlParser(object):
     document = None
 
     @classmethod
-    def parse(cls, dom):
-        return None
+    def create(cls, document):
+        xml = XmlParser()
+        xml.document = document
 
-    def entries(self):
-        return []
+        return xml
 
     def getNodeData(self, elm):
         for node in elm.childNodes:
@@ -36,6 +26,48 @@ class FeedParser(object):
 
         return None
 
+class OpmlParser(XmlParser):
+    @classmethod
+    def create(cls, document):
+        if document.tagName == 'opml' and document.getAttribute('version') == '1.0':
+            opml = OpmlParser()
+            opml.document = document
+
+            return opml
+
+        return None
+
+    def feeds(self):
+        feeds = []
+        for outline in self.document.getElementsByTagName('outline'):
+            if outline.getAttribute('type') != 'rss':
+                continue
+
+            title = outline.getAttribute('title')
+            url = outline.getAttribute('xmlUrl')
+            feeds.append({'name': title,
+                          'url': url})
+
+        return feeds
+
+class FeedParserFactory(object):
+    @classmethod
+    def create(cls, xml):
+        dom = util.parseXmlString(xml)
+        document = dom.documentElement
+
+        parsers = [AtomParser, Rss1Parser, Rss2Parser]
+        for parser in parsers:
+            feedParser = parser.create(document)
+            if feedParser:
+                return feedParser
+
+        return None
+
+class FeedParser(XmlParser):
+    def entries(self):
+        return []
+
     def createEntryDict(self, title, url, desc):
         return {'title': title,
                 'url': url,
@@ -44,8 +76,7 @@ class FeedParser(object):
 
 class AtomParser(FeedParser):
     @classmethod
-    def parse(cls, dom):
-        document = dom.documentElement
+    def create(cls, document):
         if document.tagName == 'feed' and document.getAttribute('xmlns') == 'http://www.w3.org/2005/Atom':
             feed = AtomParser()
             feed.document = document
@@ -77,8 +108,7 @@ class AtomParser(FeedParser):
 
 class Rss1Parser(FeedParser):
     @classmethod
-    def parse(cls, dom):
-        document = dom.documentElement
+    def create(cls, document):
         if document.tagName == 'rdf:RDF' and document.getAttribute('xmlns') == 'http://purl.org/rss/1.0/':
             feed = Rss1Parser()
             feed.document = document
@@ -106,8 +136,7 @@ class Rss1Parser(FeedParser):
 
 class Rss2Parser(FeedParser):
     @classmethod
-    def parse(cls, dom):
-        document = dom.documentElement
+    def create(cls, document):
         if document.tagName == 'rss' and document.getAttribute('version') == '2.0':
             feed = Rss2Parser()
             feed.document = document

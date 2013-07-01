@@ -5,9 +5,7 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
-import xml.dom.minidom
-
-import feed
+import parsers
 import util
 
 class FeedModel(db.Model):
@@ -21,10 +19,10 @@ class FeedModel(db.Model):
         self.url = dic['url']
 
     def updateEntries(self):
-        dom = util.parseXmlString(util.openUrl(self.url))
+        xml = util.openUrl(self.url)
 
         entries = []
-        parser = feed.FeedParserFactory.create(dom)
+        parser = parsers.FeedParserFactory.create(xml)
         for entryDict in parser.entries():
             key = entryDict['key']
 
@@ -109,18 +107,14 @@ class FeedImportHandler(HandlerBase):
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
-        feeds = []
         dom = util.parseXmlString(util.decodeByteString(self.request.body))
-        for outline in dom.documentElement.getElementsByTagName('outline'):
-            if outline.getAttribute('type') != 'rss':
-                continue
+        document = dom.documentElement
+        opml = parsers.OpmlParser.create(document)
 
-            title = outline.getAttribute('title')
-            url = outline.getAttribute('xmlUrl')
-
+        feeds = []
+        for feedDict in opml.feeds():
             feed = FeedModel()
-            feed.name = title
-            feed.url = url
+            feed.fromDict(feedDict)
             feed.put()
             feed.updateEntries()
             feeds.append(feed.toDict())
