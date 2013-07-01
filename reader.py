@@ -1,32 +1,14 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
 
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
-import encodings
-import json
-import time
-import urllib2
-from xml.dom import minidom
+import xml.dom.minidom
 
-from feed import *
-
-def decode(string):
-    try:
-        return string.decode('utf8')
-    except:
-        for enc in encodings.aliases.aliases.values():
-            try:
-                return string.decode(enc)
-            except:
-                pass
-
-    return string
-
-def parseXmlString(string):
-    return minidom.parseString(string.encode('ascii', 'xmlcharrefreplace'))
+import feed
+import util
 
 class FeedModel(db.Model):
     name = db.StringProperty(multiline=False)
@@ -39,10 +21,10 @@ class FeedModel(db.Model):
         self.url = dic['url']
 
     def updateEntries(self):
-        dom = parseXmlString(decode(urllib2.urlopen(self.url).read()))
+        dom = util.parseXmlString(util.openUrl(self.url))
 
         entries = []
-        parser = FeedParserFactory.create(dom)
+        parser = feed.FeedParserFactory.create(dom)
         for entryDict in parser.entries():
             key = entryDict['key']
 
@@ -61,8 +43,8 @@ class FeedModel(db.Model):
     def toDict(self):
         return {'name': self.name,
                 'url': self.url,
-                'created': int(time.mktime(self.created.timetuple())),
-                'modified': int(time.mktime(self.modified.timetuple())),
+                'created': util.dateTimeToUnix(self.created),
+                'modified': util.dateTimeToUnix(self.modified),
                 'id': self.key().id()}
 
 class EntryModel(db.Model):
@@ -84,20 +66,14 @@ class EntryModel(db.Model):
                 'url': self.url,
                 'description': self.desc,
                 'read': self.read,
-                'created': int(time.mktime(self.created.timetuple())),
-                'modified': int(time.mktime(self.modified.timetuple())),
+                'created': util.dateTimeToUnix(self.created),
+                'modified': util.dateTimeToUnix(self.modified),
                 'id': self.key().name()}
 
 class HandlerBase(webapp.RequestHandler):
-    def dumpsJSON(self, obj):
-        return json.dumps(obj, indent=2, sort_keys=True)
-
-    def loadsJSON(self, text):
-        return json.loads(text)
-
     def writeNotFound(self):
         self.error(404)
-        self.response.out.write(self.dumpsJSON({}))
+        self.response.out.write(util.dumpsJSON({}))
 
     def getFeed(self, feedId):
         return FeedModel.get_by_id(long(feedId))
@@ -117,24 +93,24 @@ class FeedCollectionHandler(HandlerBase):
         for feed in FeedModel.all():
             feeds.append(feed.toDict())
 
-        self.response.out.write(self.dumpsJSON({'feeds': feeds}))
+        self.response.out.write(util.dumpsJSON({'feeds': feeds}))
 
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
         feed = FeedModel()
-        feed.fromDict(self.loadsJSON(self.request.body))
+        feed.fromDict(util.loadsJSON(self.request.body))
         feed.put()
         feed.updateEntries()
 
-        self.response.out.write(self.dumpsJSON(feed.toDict()))
+        self.response.out.write(util.dumpsJSON(feed.toDict()))
 
 class FeedImportHandler(HandlerBase):
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
         feeds = []
-        dom = parseXmlString(decode(self.request.body))
+        dom = util.parseXmlString(util.decodeByteString(self.request.body))
         for outline in dom.documentElement.getElementsByTagName('outline'):
             if outline.getAttribute('type') != 'rss':
                 continue
@@ -149,7 +125,7 @@ class FeedImportHandler(HandlerBase):
             feed.updateEntries()
             feeds.append(feed.toDict())
 
-        self.response.out.write(self.dumpsJSON({'feeds': feeds}))
+        self.response.out.write(util.dumpsJSON({'feeds': feeds}))
 
 class FeedUpdateHandler(HandlerBase):
     def get(self):
@@ -161,7 +137,7 @@ class FeedUpdateHandler(HandlerBase):
             feed.updateEntries()
             feeds.append(feed.toDict())
 
-        self.response.out.write(self.dumpsJSON({'feeds': feeds}))
+        self.response.out.write(util.dumpsJSON({'feeds': feeds}))
 
 class FeedHandler(HandlerBase):
     def get(self, feedId):
@@ -176,7 +152,7 @@ class FeedHandler(HandlerBase):
         for entry in EntryModel.gql("WHERE ANCESTOR IS :1", feed):
             entries.append(entry.toDict())
 
-        self.response.out.write(self.dumpsJSON(
+        self.response.out.write(util.dumpsJSON(
             {'feed': feed.toDict(),
              'entries': entries}))
 
@@ -188,14 +164,14 @@ class FeedHandler(HandlerBase):
             self.writeNotFound()
             return
 
-        feed.fromDict(self.loadsJSON(self.request.body))
+        feed.fromDict(util.loadsJSON(self.request.body))
         feed.put()
 
         entries = []
         for entry in feed.updateEntries():
             entries.append(entry.toDict())
 
-        self.response.out.write(self.dumpsJSON(
+        self.response.out.write(util.dumpsJSON(
             {'feed': feed.toDict(),
              'entries': entries}))
 
