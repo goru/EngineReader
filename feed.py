@@ -4,9 +4,9 @@
 from xml.dom import minidom
 import hashlib
 
-class FeedParserBuilder(object):
+class FeedParserFactory(object):
     @classmethod
-    def build(cls, dom):
+    def create(cls, dom):
         parsers = [AtomParser, Rss1Parser, Rss2Parser]
         for parser in parsers:
             feedParser = parser.parse(dom)
@@ -22,19 +22,25 @@ class FeedParser(object):
     def parse(cls, dom):
         return None
 
-    def getNodeData(self, elm):
-        for node in elm.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                return node.data
+    def entries(self):
+        return []
 
+    def getNodeData(self, elm):
         for node in elm.childNodes:
             if node.nodeType == node.CDATA_SECTION_NODE:
                 return node.data
 
+        for node in elm.childNodes:
+            if node.nodeType == node.TEXT_NODE:
+                return node.data
+
         return None
 
-    def getEntryKey(self, url):
-        return 'entry-' + hashlib.md5(url).hexdigest()
+    def createEntryDict(self, title, url, desc):
+        return {'title': title,
+                'url': url,
+                'description': desc,
+                'key': 'entry-' + hashlib.md5(url).hexdigest()}
 
 class AtomParser(FeedParser):
     @classmethod
@@ -50,7 +56,6 @@ class AtomParser(FeedParser):
 
     def entries(self):
         entries = []
-
         for child in self.document.childNodes:
             if child.nodeType != child.ELEMENT_NODE or child.nodeName != 'entry':
                 continue
@@ -58,7 +63,7 @@ class AtomParser(FeedParser):
             title = self.getNodeData(child.getElementsByTagName('title')[0])
             url = child.getElementsByTagName('link')[0].getAttribute('href')
 
-            description = ''
+            desc = ''
             content = child.getElementsByTagName('content')
             summary = child.getElementsByTagName('summary')
             if content.length > 0:
@@ -66,11 +71,7 @@ class AtomParser(FeedParser):
             elif summary.length > 0:
                 desc = self.getNodeData(summary[0])
 
-            entry = {'title': title,
-                     'url': url,
-                     'description': desc,
-                     'key': self.getEntryKey(url)}
-            entries.append(entry)
+            entries.append(self.createEntryDict(title, url, desc))
 
         return entries
 
@@ -88,22 +89,18 @@ class Rss1Parser(FeedParser):
 
     def entries(self):
         entries = []
-
         for child in self.document.childNodes:
             if child.nodeType != child.ELEMENT_NODE or child.nodeName != 'item':
                 continue
 
             title = self.getNodeData(child.getElementsByTagName('title')[0])
             url = self.getNodeData(child.getElementsByTagName('link')[0])
+
             desc = ''
             if child.getElementsByTagName('description').length > 0:
                 desc = self.getNodeData(child.getElementsByTagName('description')[0])
 
-            entry = {'title': title,
-                     'url': url,
-                     'description': desc,
-                     'key': self.getEntryKey(url)}
-            entries.append(entry)
+            entries.append(self.createEntryDict(title, url, desc))
 
         return entries
 
@@ -121,23 +118,18 @@ class Rss2Parser(FeedParser):
 
     def entries(self):
         entries = []
-
         channel = self.document.getElementsByTagName('channel')[0]
-
         for child in channel.childNodes:
             if child.nodeType != child.ELEMENT_NODE or child.nodeName != 'item':
                 continue
 
             title = self.getNodeData(child.getElementsByTagName('title')[0])
             url = self.getNodeData(child.getElementsByTagName('link')[0])
+
             desc = ''
             if child.getElementsByTagName('description').length > 0:
                 desc = self.getNodeData(child.getElementsByTagName('description')[0])
 
-            entry = {'title': title,
-                     'url': url,
-                     'description': desc,
-                     'key': self.getEntryKey(url)}
-            entries.append(entry)
+            entries.append(self.createEntryDict(title, url, desc))
 
         return entries

@@ -25,7 +25,7 @@ def decode(string):
 
     return string
 
-def parseString(string):
+def parseXmlString(string):
     return minidom.parseString(string.encode('ascii', 'xmlcharrefreplace'))
 
 class FeedModel(db.Model):
@@ -39,10 +39,10 @@ class FeedModel(db.Model):
         self.url = dic['url']
 
     def updateEntries(self):
-        dom = parseString(decode(urllib2.urlopen(self.url).read()))
+        dom = parseXmlString(decode(urllib2.urlopen(self.url).read()))
 
         entries = []
-        parser = FeedParserBuilder.build(dom)
+        parser = FeedParserFactory.create(dom)
         for entryDict in parser.entries():
             key = entryDict['key']
 
@@ -134,7 +134,7 @@ class FeedImportHandler(HandlerBase):
         self.response.headers['Content-Type'] = 'application/json'
 
         feeds = []
-        dom = parseString(decode(self.request.body))
+        dom = parseXmlString(decode(self.request.body))
         for outline in dom.documentElement.getElementsByTagName('outline'):
             if outline.getAttribute('type') != 'rss':
                 continue
