@@ -195,11 +195,11 @@ class ReadUnreadHandler(HandlerBase):
         feed.put()
 
 application = webapp.WSGIApplication(
-    [('/feed', FeedCollectionHandler),
-     ('/feed/import', FeedImportHandler),
-     ('/feed/update', FeedUpdateHandler),
-     ('/feed/(\d+)', FeedHandler),
-     ('/feed/(\d+)/(entry-[a-z0-9]+)/(read|unread)', ReadUnreadHandler)],
+    [('/feeds/?', FeedCollectionHandler),
+     ('/feeds/import', FeedImportHandler),
+     ('/feeds/update', FeedUpdateHandler),
+     ('/feeds/(\d+)/?', FeedHandler),
+     ('/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', ReadUnreadHandler)],
     debug=True)
 
 def main():
