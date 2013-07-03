@@ -72,7 +72,7 @@ class EntryModel(ModelBase):
     def toDict(self):
         return {'title': self.title,
                 'url': self.url,
-                'description': self.desc,
+                'description': self.description,
                 'read': self.read,
                 'created': util.dateTimeToUnix(self.created),
                 'modified': util.dateTimeToUnix(self.modified),
