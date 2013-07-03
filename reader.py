@@ -41,9 +41,9 @@ class FeedModel(ModelBase):
             if not entry:
                 entry = EntryModel(parent=self, key_name=key)
                 entry.feed = self
-                entry.read = False
 
             if entry.fromDict(entryDict):
+                entry.read = False
                 entry.put()
 
             entries.append(entry)
