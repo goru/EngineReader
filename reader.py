@@ -8,15 +8,26 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 import parsers
 import util
 
-class FeedModel(db.Model):
+class ModelBase(db.Model):
+    def updateAttrFromDict(self, keys, dic):
+        requireUpdate = False
+
+        for key in keys:
+            if getattr(self, key) != dic[key]:
+                requireUpdate = True
+
+            setattr(self, key, dic[key])
+
+        return requireUpdate
+
+class FeedModel(ModelBase):
     name = db.StringProperty(multiline=False)
     url = db.StringProperty(multiline=False)
     created = db.DateTimeProperty(auto_now_add=True)
     modified = db.DateTimeProperty(auto_now=True)
 
     def fromDict(self, dic):
-        self.name = dic['name']
-        self.url = dic['url']
+        return self.updateAttrFromDict(['name', 'url'], dic)
 
     def updateEntries(self):
         xml = util.openUrl(self.url)
@@ -32,8 +43,9 @@ class FeedModel(db.Model):
                 entry.feed = self
                 entry.read = False
 
-            entry.fromDict(entryDict)
-            entry.put()
+            if entry.fromDict(entryDict):
+                entry.put()
+
             entries.append(entry)
 
         return entries
@@ -45,19 +57,17 @@ class FeedModel(db.Model):
                 'modified': util.dateTimeToUnix(self.modified),
                 'id': self.key().id()}
 
-class EntryModel(db.Model):
+class EntryModel(ModelBase):
     feed = db.ReferenceProperty(FeedModel)
     title = db.StringProperty(multiline=False)
     url = db.StringProperty(multiline=False)
-    desc = db.TextProperty()
+    description = db.TextProperty()
     read = db.BooleanProperty()
     created = db.DateTimeProperty(auto_now_add=True)
     modified = db.DateTimeProperty(auto_now=True)
 
     def fromDict(self, dic):
-        self.title = dic['title']
-        self.url = dic['url']
-        self.desc = dic['description']
+        return self.updateAttrFromDict(['title', 'url', 'description'], dic)
 
     def toDict(self):
         return {'title': self.title,
@@ -127,7 +137,6 @@ class FeedUpdateHandler(HandlerBase):
 
         feeds = []
         for feed in FeedModel.all():
-            feed.put()
             feed.updateEntries()
             feeds.append(feed.toDict())
 
@@ -158,8 +167,8 @@ class FeedHandler(HandlerBase):
             self.writeNotFound()
             return
 
-        feed.fromDict(util.loadsJSON(self.request.body))
-        feed.put()
+        if feed.fromDict(util.loadsJSON(self.request.body)):
+            feed.put()
 
         entries = []
         for entry in feed.updateEntries():
