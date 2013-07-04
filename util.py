@@ -23,7 +23,10 @@ def parseXmlString(ustr):
     return xml.dom.minidom.parseString(ustr.encode('ascii', 'xmlcharrefreplace'))
 
 def openUrl(url):
-    return decodeByteString(urllib2.urlopen(url).read())
+    try:
+        return decodeByteString(urllib2.urlopen(url).read())
+    except:
+        return None
 
 def dateTimeToUnix(dateTime):
     return int(time.mktime(dateTime.timetuple()))

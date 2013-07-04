@@ -31,6 +31,8 @@ class FeedModel(ModelBase):
 
     def updateEntries(self):
         xml = util.openUrl(self.url)
+        if not xml:
+            return []
 
         entries = []
         parser = parsers.FeedParserFactory.create(xml)
