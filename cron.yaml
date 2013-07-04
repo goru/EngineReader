@@ -1,4 +1,4 @@
 cron:
 - description: feed update job
-  url: /feed/update
+  url: /api/feeds/update
   schedule: every 30 minutes
