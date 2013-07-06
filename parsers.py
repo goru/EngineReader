@@ -45,7 +45,7 @@ class OpmlParser(XmlParser):
 
             title = outline.getAttribute('title')
             url = outline.getAttribute('xmlUrl')
-            feeds.append({'name': title,
+            feeds.append({'title': title,
                           'url': url})
 
         return feeds

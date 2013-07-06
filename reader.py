@@ -5,80 +5,9 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
+import models
 import parsers
 import util
-
-class ModelBase(db.Model):
-    def updateAttrFromDict(self, keys, dic):
-        requireUpdate = False
-
-        for key in keys:
-            if getattr(self, key) != dic[key]:
-                requireUpdate = True
-
-            setattr(self, key, dic[key])
-
-        return requireUpdate
-
-class FeedModel(ModelBase):
-    name = db.StringProperty(multiline=False)
-    url = db.StringProperty(multiline=False)
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now=True)
-
-    def fromDict(self, dic):
-        return self.updateAttrFromDict(['name', 'url'], dic)
-
-    def updateEntries(self):
-        xml = util.openUrl(self.url)
-        if not xml:
-            return []
-
-        entries = []
-        parser = parsers.FeedParserFactory.create(xml)
-        for entryDict in parser.entries():
-            key = entryDict['key']
-
-            entry = EntryModel.get_by_key_name(key, parent=self)
-            if not entry:
-                entry = EntryModel(parent=self, key_name=key)
-                entry.feed = self
-
-            if entry.fromDict(entryDict):
-                entry.read = False
-                entry.put()
-
-            entries.append(entry)
-
-        return entries
-
-    def toDict(self):
-        return {'name': self.name,
-                'url': self.url,
-                'created': util.dateTimeToUnix(self.created),
-                'modified': util.dateTimeToUnix(self.modified),
-                'id': self.key().id()}
-
-class EntryModel(ModelBase):
-    feed = db.ReferenceProperty(FeedModel)
-    title = db.StringProperty(multiline=False)
-    url = db.StringProperty(multiline=False)
-    description = db.TextProperty()
-    read = db.BooleanProperty()
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now=True)
-
-    def fromDict(self, dic):
-        return self.updateAttrFromDict(['title', 'url', 'description'], dic)
-
-    def toDict(self):
-        return {'title': self.title,
-                'url': self.url,
-                'description': self.description,
-                'read': self.read,
-                'created': util.dateTimeToUnix(self.created),
-                'modified': util.dateTimeToUnix(self.modified),
-                'id': self.key().name()}
 
 class HandlerBase(webapp.RequestHandler):
     def writeNotFound(self):
@@ -86,21 +15,21 @@ class HandlerBase(webapp.RequestHandler):
         self.response.out.write(util.dumpsJSON({}))
 
     def getFeed(self, feedId):
-        return FeedModel.get_by_id(long(feedId))
+        return models.FeedModel.get_by_id(long(feedId))
 
     def getEntry(self, feedId, entryId):
         feed = self.getFeed(feedId)
         if not feed:
             return None
 
-        return EntryModel.get_by_key_name(entryId, parent=feed)
+        return models.EntryModel.get_by_key_name(entryId, parent=feed)
 
 class FeedCollectionHandler(HandlerBase):
     def get(self):
         self.response.headers['Content-Type'] = 'application/json'
 
         feeds = []
-        for feed in FeedModel.all():
+        for feed in models.FeedModel.all():
             feeds.append(feed.toDict())
 
         self.response.out.write(util.dumpsJSON({'feeds': feeds}))
@@ -108,7 +37,7 @@ class FeedCollectionHandler(HandlerBase):
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
-        feed = FeedModel()
+        feed = models.FeedModel()
         feed.fromDict(util.loadsJSON(self.request.body))
         feed.put()
         feed.updateEntries()
@@ -125,7 +54,7 @@ class FeedImportHandler(HandlerBase):
 
         feeds = []
         for feedDict in opml.feeds():
-            feed = FeedModel()
+            feed = models.FeedModel()
             feed.fromDict(feedDict)
             feed.put()
             feed.updateEntries()
@@ -138,7 +67,7 @@ class FeedUpdateHandler(HandlerBase):
         self.response.headers['Content-Type'] = 'application/json'
 
         feeds = []
-        for feed in FeedModel.all():
+        for feed in models.FeedModel.all():
             feed.updateEntries()
             feeds.append(feed.toDict())
 
@@ -154,7 +83,7 @@ class FeedHandler(HandlerBase):
             return
 
         entries = []
-        for entry in EntryModel.gql("WHERE ANCESTOR IS :1", feed):
+        for entry in models.EntryModel.gql("WHERE ANCESTOR IS :1", feed):
             entries.append(entry.toDict())
 
         self.response.out.write(util.dumpsJSON(
