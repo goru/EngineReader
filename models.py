@@ -8,6 +8,84 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 import parsers
 import util
 
+class FeedManager(object):
+    @classmethod
+    def createFeed(cls, dic):
+        feed = FeedModel()
+        feed.fromDict(dic)
+        feed.put()
+
+        cls.updateEntries(feed)
+
+        return feed
+
+    @classmethod
+    def getFeeds(cls):
+        return FeedModel.all()
+
+    @classmethod
+    def getFeedById(cls, feedId):
+        return FeedModel.get_by_id(long(feedId))
+
+    @classmethod
+    def getEntries(cls, feed, pagingKey):
+        return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey))
+
+    @classmethod
+    def getUnreadEntries(cls, feed, pagingKey):
+        return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 AND read = :3 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey), False)
+
+    @classmethod
+    def getEntryById(cls, feedId, entryId):
+        feed = cls.getFeedById(feedId)
+        if not feed:
+            return None
+
+        return EntryModel.get_by_key_name(entryId, parent=feed)
+
+    @classmethod
+    def setEntryStatus(cls, entry, status):
+        entry.read = status
+        entry.put()
+
+        if entry.read:
+            entry.feed.unread -= 1
+        else:
+            entry.feed.unread += 1
+        entry.feed.put()
+
+    @classmethod
+    def updateEntries(cls, feed):
+        xml = util.openUrl(feed.url)
+        if not xml:
+            return
+
+        dom = util.parseXmlString(xml)
+        parser = parsers.FeedParserFactory.create(dom)
+
+        pagingKey = 0
+        for entryDict in parser.entries():
+            key = entryDict['key']
+
+            entry = EntryModel.get_by_key_name(key, parent=feed)
+            if not entry:
+                entry = EntryModel(parent=feed, key_name=key)
+                entry.feed = feed
+
+                feed.total += 1
+
+            if entry.fromDict(entryDict):
+                entry.read = False
+                entry.setPagingKey(pagingKey)
+                entry.put()
+
+                pagingKey += 1
+
+                feed.unread += 1
+
+        if pagingKey > 0:
+            feed.put()
+
 class ModelBase(db.Model):
     def updateAttrFromDict(self, keys, dic):
         updateRequired = False
@@ -24,38 +102,19 @@ class FeedModel(ModelBase):
     url = db.StringProperty(multiline=False)
     created = db.DateTimeProperty(auto_now_add=True)
     modified = db.DateTimeProperty(auto_now=True)
+    total = db.IntegerProperty(default=0)
+    unread = db.IntegerProperty(default=0)
 
     def fromDict(self, dic):
         return self.updateAttrFromDict(['title', 'url'], dic)
-
-    def updateEntries(self):
-        xml = util.openUrl(self.url)
-        if not xml:
-            return []
-
-        entries = []
-        parser = parsers.FeedParserFactory.create(xml)
-        for entryDict in parser.entries():
-            key = entryDict['key']
-
-            entry = EntryModel.get_by_key_name(key, parent=self)
-            if not entry:
-                entry = EntryModel(parent=self, key_name=key)
-                entry.feed = self
-
-            if entry.fromDict(entryDict):
-                entry.read = False
-                entry.put()
-
-            entries.append(entry)
-
-        return entries
 
     def toDict(self):
         return {'title': self.title,
                 'url': self.url,
                 'created': util.dateTimeToUnix(self.created),
                 'modified': util.dateTimeToUnix(self.modified),
+                'total': self.total,
+                'unread': self.unread,
                 'id': self.key().id()}
 
 class EntryModel(ModelBase):
@@ -63,9 +122,15 @@ class EntryModel(ModelBase):
     title = db.StringProperty(multiline=False)
     url = db.StringProperty(multiline=False)
     description = db.TextProperty()
-    read = db.BooleanProperty()
+    read = db.BooleanProperty(default=False)
     created = db.DateTimeProperty(auto_now_add=True)
     modified = db.DateTimeProperty(auto_now=True)
+    pagingKey = db.FloatProperty()
+
+    def setPagingKey(self, key):
+        left = float(util.currentUnix())
+        right = float(key) / 1000000
+        self.pagingKey = left + right
 
     def fromDict(self, dic):
         return self.updateAttrFromDict(['title', 'url', 'description'], dic)
@@ -77,4 +142,5 @@ class EntryModel(ModelBase):
                 'read': self.read,
                 'created': util.dateTimeToUnix(self.created),
                 'modified': util.dateTimeToUnix(self.modified),
+                'pagingKey': self.pagingKey,
                 'id': self.key().name()}

@@ -28,6 +28,9 @@ def openUrl(url):
     except:
         return None
 
+def currentUnix():
+    return int(time.time())
+
 def dateTimeToUnix(dateTime):
     return int(time.mktime(dateTime.timetuple()))
 

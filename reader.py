@@ -5,6 +5,8 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
+import time
+
 import models
 import parsers
 import util
@@ -14,22 +16,12 @@ class HandlerBase(webapp.RequestHandler):
         self.error(404)
         self.response.out.write(util.dumpsJSON({}))
 
-    def getFeed(self, feedId):
-        return models.FeedModel.get_by_id(long(feedId))
-
-    def getEntry(self, feedId, entryId):
-        feed = self.getFeed(feedId)
-        if not feed:
-            return None
-
-        return models.EntryModel.get_by_key_name(entryId, parent=feed)
-
 class FeedCollectionHandler(HandlerBase):
     def get(self):
         self.response.headers['Content-Type'] = 'application/json'
 
         feeds = []
-        for feed in models.FeedModel.all():
+        for feed in models.FeedManager.getFeeds():
             feeds.append(feed.toDict())
 
         self.response.out.write(util.dumpsJSON({'feeds': feeds}))
@@ -37,10 +29,8 @@ class FeedCollectionHandler(HandlerBase):
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
-        feed = models.FeedModel()
-        feed.fromDict(util.loadsJSON(self.request.body))
-        feed.put()
-        feed.updateEntries()
+        dic = util.loadsJSON(util.decodeByteString(self.request.body))
+        feed = models.FeedManager.createFeed(dic)
 
         self.response.out.write(util.dumpsJSON(feed.toDict()))
 
@@ -49,15 +39,11 @@ class FeedImportHandler(HandlerBase):
         self.response.headers['Content-Type'] = 'application/json'
 
         dom = util.parseXmlString(util.decodeByteString(self.request.body))
-        document = dom.documentElement
-        opml = parsers.OpmlParser.create(document)
+        opml = parsers.OpmlParser.create(dom)
 
         feeds = []
         for feedDict in opml.feeds():
-            feed = models.FeedModel()
-            feed.fromDict(feedDict)
-            feed.put()
-            feed.updateEntries()
+            feed = models.FeedManager.createFeed(feedDict)
             feeds.append(feed.toDict())
 
         self.response.out.write(util.dumpsJSON({'feeds': feeds}))
@@ -67,8 +53,8 @@ class FeedUpdateHandler(HandlerBase):
         self.response.headers['Content-Type'] = 'application/json'
 
         feeds = []
-        for feed in models.FeedModel.all():
-            feed.updateEntries()
+        for feed in models.FeedManager.getFeeds():
+            models.FeedManager.updateEntries(feed)
             feeds.append(feed.toDict())
 
         self.response.out.write(util.dumpsJSON({'feeds': feeds}))
@@ -77,60 +63,74 @@ class FeedHandler(HandlerBase):
     def get(self, feedId):
         self.response.headers['Content-Type'] = 'application/json'
 
-        feed = self.getFeed(feedId)
+        feed = models.FeedManager.getFeedById(feedId)
         if not feed:
             self.writeNotFound()
             return
 
-        entries = []
-        for entry in models.EntryModel.gql("WHERE ANCESTOR IS :1", feed):
-            entries.append(entry.toDict())
-
-        self.response.out.write(util.dumpsJSON(
-            {'feed': feed.toDict(),
-             'entries': entries}))
+        self.response.out.write(util.dumpsJSON(feed.toDict()))
 
     def post(self, feedId):
         self.response.headers['Content-Type'] = 'application/json'
 
-        feed = self.getFeed(feedId)
+        feed = models.FeedManager.getFeedById(feedId)
         if not feed:
             self.writeNotFound()
             return
 
-        if feed.fromDict(util.loadsJSON(self.request.body)):
+        feedDict = util.loadsJSON(util.decodeByteString(self.request.body))
+        if feed.fromDict(feedDict):
             feed.put()
 
+        self.response.out.write(util.dumpsJSON(feed.toDict()))
+
+class FeedEntryHandler(HandlerBase):
+    def get(self, feedId, action, pagingKey=None):
+        self.response.headers['Content-Type'] = 'application/json'
+
+        feed = models.FeedManager.getFeedById(feedId)
+        if not feed:
+            self.writeNotFound()
+            return
+
+        if not pagingKey:
+            pagingKey = util.currentUnix()
+
+        entryQuery = []
+        if action == 'all':
+            entryQuery = models.FeedManager.getEntries(feed, pagingKey)
+        elif action == 'unread':
+            entryQuery = models.FeedManager.getUnreadEntries(feed, pagingKey)
+
         entries = []
-        for entry in feed.updateEntries():
+        for entry in entryQuery:
             entries.append(entry.toDict())
 
-        self.response.out.write(util.dumpsJSON(
-            {'feed': feed.toDict(),
-             'entries': entries}))
+        feedDict = feed.toDict()
+        feedDict['entries'] = entries
 
-class ReadUnreadHandler(HandlerBase):
+        self.response.out.write(util.dumpsJSON(feedDict))
+
+class EntryReadUnreadHandler(HandlerBase):
     def post(self, feedId, entryId, action):
         self.response.headers['Content-Type'] = 'application/json'
 
-        feed = self.getEntry(feedId, entryId)
-        if not feed:
+        entry = models.FeedManager.getEntryById(feedId, entryId)
+        if not entry:
             self.writeNotFound()
             return
 
-        if action == 'read':
-            feed.read = True
-        elif action == 'unread':
-            feed.read = False
-
-        feed.put()
+        stat = True if action == 'read' else False
+        models.FeedManager.setEntryStatus(entry, stat)
 
 application = webapp.WSGIApplication(
     [('/api/feeds/?', FeedCollectionHandler),
      ('/api/feeds/import', FeedImportHandler),
      ('/api/feeds/update', FeedUpdateHandler),
      ('/api/feeds/(\d+)/?', FeedHandler),
-     ('/api/feeds/(\d+)/entries/(entry-[a-z0-9]+)/(read|unread)', ReadUnreadHandler)],
+     ('/api/feeds/(\d+)/(all|unread)/?', FeedEntryHandler),
+     ('/api/feeds/(\d+)/(all|unread)/([0-9.]+)/?', FeedEntryHandler),
+     ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler)],
     debug=True)
 
 def main():

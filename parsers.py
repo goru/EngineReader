@@ -9,9 +9,9 @@ class XmlParser(object):
     document = None
 
     @classmethod
-    def create(cls, document):
+    def create(cls, dom):
         xml = XmlParser()
-        xml.document = document
+        xml.document = dom.documentElement
 
         return xml
 
@@ -28,7 +28,9 @@ class XmlParser(object):
 
 class OpmlParser(XmlParser):
     @classmethod
-    def create(cls, document):
+    def create(cls, dom):
+        document = dom.documentElement
+
         if document.tagName == 'opml' and document.getAttribute('version') == '1.0':
             opml = OpmlParser()
             opml.document = document
@@ -52,13 +54,10 @@ class OpmlParser(XmlParser):
 
 class FeedParserFactory(object):
     @classmethod
-    def create(cls, xml):
-        dom = util.parseXmlString(xml)
-        document = dom.documentElement
-
+    def create(cls, dom):
         parsers = [AtomParser, Rss1Parser, Rss2Parser]
         for parser in parsers:
-            feedParser = parser.create(document)
+            feedParser = parser.create(dom)
             if feedParser:
                 return feedParser
 
@@ -76,10 +75,12 @@ class FeedParser(XmlParser):
 
 class AtomParser(FeedParser):
     @classmethod
-    def create(cls, document):
+    def create(cls, dom):
+        document = dom.documentElement
+
         if document.tagName == 'feed' and document.getAttribute('xmlns') == 'http://www.w3.org/2005/Atom':
             feed = AtomParser()
-            feed.document = document
+            feed.document = dom.documentElement
 
             return feed
 
@@ -108,10 +109,12 @@ class AtomParser(FeedParser):
 
 class Rss1Parser(FeedParser):
     @classmethod
-    def create(cls, document):
+    def create(cls, dom):
+        document = dom.documentElement
+
         if document.tagName == 'rdf:RDF' and document.getAttribute('xmlns') == 'http://purl.org/rss/1.0/':
             feed = Rss1Parser()
-            feed.document = document
+            feed.document = dom.documentElement
 
             return feed
 
@@ -136,10 +139,12 @@ class Rss1Parser(FeedParser):
 
 class Rss2Parser(FeedParser):
     @classmethod
-    def create(cls, document):
+    def create(cls, dom):
+        document = dom.documentElement
+
         if document.tagName == 'rss' and document.getAttribute('version') == '2.0':
             feed = Rss2Parser()
-            feed.document = document
+            feed.document = dom.documentElement
 
             return feed
 
