@@ -5,5 +5,5 @@ api_version: 1
 threadsafe: no
 
 handlers:
-- url: /.*
-  script: reader.py
+- url: /api/feeds.*
+  script: api/feeds/reader.py
