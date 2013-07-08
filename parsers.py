@@ -3,8 +3,6 @@
 
 import hashlib
 
-import util
-
 class XmlParser(object):
     document = None
 

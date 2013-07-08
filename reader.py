@@ -9,12 +9,12 @@ import time
 
 import models
 import parsers
-import util
+import utils
 
 class HandlerBase(webapp.RequestHandler):
     def writeNotFound(self):
         self.error(404)
-        self.response.out.write(util.dumpsJSON({}))
+        self.response.out.write(utils.dumpsJSON({}))
 
 class FeedCollectionHandler(HandlerBase):
     def get(self):
@@ -24,21 +24,21 @@ class FeedCollectionHandler(HandlerBase):
         for feed in models.FeedManager.getFeeds():
             feeds.append(feed.toDict())
 
-        self.response.out.write(util.dumpsJSON({'feeds': feeds}))
+        self.response.out.write(utils.dumpsJSON({'feeds': feeds}))
 
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
-        dic = util.loadsJSON(util.decodeByteString(self.request.body))
+        dic = utils.loadsJSON(utils.decodeByteString(self.request.body))
         feed = models.FeedManager.createFeed(dic)
 
-        self.response.out.write(util.dumpsJSON(feed.toDict()))
+        self.response.out.write(utils.dumpsJSON(feed.toDict()))
 
 class FeedImportHandler(HandlerBase):
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
-        dom = util.parseXmlString(util.decodeByteString(self.request.body))
+        dom = utils.parseXmlString(utils.decodeByteString(self.request.body))
         opml = parsers.OpmlParser.create(dom)
 
         feeds = []
@@ -46,7 +46,7 @@ class FeedImportHandler(HandlerBase):
             feed = models.FeedManager.createFeed(feedDict)
             feeds.append(feed.toDict())
 
-        self.response.out.write(util.dumpsJSON({'feeds': feeds}))
+        self.response.out.write(utils.dumpsJSON({'feeds': feeds}))
 
 class FeedUpdateHandler(HandlerBase):
     def get(self):
@@ -57,7 +57,7 @@ class FeedUpdateHandler(HandlerBase):
             models.FeedManager.updateEntries(feed)
             feeds.append(feed.toDict())
 
-        self.response.out.write(util.dumpsJSON({'feeds': feeds}))
+        self.response.out.write(utils.dumpsJSON({'feeds': feeds}))
 
 class FeedHandler(HandlerBase):
     def get(self, feedId):
@@ -68,7 +68,7 @@ class FeedHandler(HandlerBase):
             self.writeNotFound()
             return
 
-        self.response.out.write(util.dumpsJSON(feed.toDict()))
+        self.response.out.write(utils.dumpsJSON(feed.toDict()))
 
     def post(self, feedId):
         self.response.headers['Content-Type'] = 'application/json'
@@ -78,11 +78,11 @@ class FeedHandler(HandlerBase):
             self.writeNotFound()
             return
 
-        feedDict = util.loadsJSON(util.decodeByteString(self.request.body))
+        feedDict = utils.loadsJSON(utils.decodeByteString(self.request.body))
         if feed.fromDict(feedDict):
             feed.put()
 
-        self.response.out.write(util.dumpsJSON(feed.toDict()))
+        self.response.out.write(utils.dumpsJSON(feed.toDict()))
 
 class FeedEntryHandler(HandlerBase):
     def get(self, feedId, action, pagingKey=None):
@@ -94,7 +94,7 @@ class FeedEntryHandler(HandlerBase):
             return
 
         if not pagingKey:
-            pagingKey = util.currentUnix()
+            pagingKey = utils.currentUnix()
 
         entryQuery = []
         if action == 'all':
@@ -109,7 +109,7 @@ class FeedEntryHandler(HandlerBase):
         feedDict = feed.toDict()
         feedDict['entries'] = entries
 
-        self.response.out.write(util.dumpsJSON(feedDict))
+        self.response.out.write(utils.dumpsJSON(feedDict))
 
 class EntryReadUnreadHandler(HandlerBase):
     def post(self, feedId, entryId, action):

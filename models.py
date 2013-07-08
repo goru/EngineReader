@@ -6,7 +6,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
 import parsers
-import util
+import utils
 
 class FeedManager(object):
     @classmethod
@@ -56,11 +56,11 @@ class FeedManager(object):
 
     @classmethod
     def updateEntries(cls, feed):
-        xml = util.openUrl(feed.url)
+        xml = utils.openUrl(feed.url)
         if not xml:
             return
 
-        dom = util.parseXmlString(xml)
+        dom = utils.parseXmlString(xml)
         parser = parsers.FeedParserFactory.create(dom)
 
         pagingKey = 0
@@ -111,8 +111,8 @@ class FeedModel(ModelBase):
     def toDict(self):
         return {'title': self.title,
                 'url': self.url,
-                'created': util.dateTimeToUnix(self.created),
-                'modified': util.dateTimeToUnix(self.modified),
+                'created': utils.dateTimeToUnix(self.created),
+                'modified': utils.dateTimeToUnix(self.modified),
                 'total': self.total,
                 'unread': self.unread,
                 'id': self.key().id()}
@@ -128,7 +128,7 @@ class EntryModel(ModelBase):
     pagingKey = db.FloatProperty()
 
     def setPagingKey(self, key):
-        left = float(util.currentUnix())
+        left = float(utils.currentUnix())
         right = float(key) / 1000000
         self.pagingKey = left + right
 
@@ -140,7 +140,7 @@ class EntryModel(ModelBase):
                 'url': self.url,
                 'description': self.description,
                 'read': self.read,
-                'created': util.dateTimeToUnix(self.created),
-                'modified': util.dateTimeToUnix(self.modified),
+                'created': utils.dateTimeToUnix(self.created),
+                'modified': utils.dateTimeToUnix(self.modified),
                 'pagingKey': self.pagingKey,
                 'id': self.key().name()}
