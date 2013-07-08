@@ -7,3 +7,6 @@ threadsafe: no
 handlers:
 - url: /api/feeds.*
   script: api/feeds/reader.py
+
+- url: /
+  script: webui/sample/index.py

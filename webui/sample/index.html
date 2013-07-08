@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <script language="javascript" type="text/javascript">
+function OnLinkClick(entryUrl, feedId, entryId) {
+  window.open(entryUrl);
+  var req = new XMLHttpRequest();
+  req.open('POST', '/api/feeds/' + feedId + '/' + entryId + '/read');
+  req.send("");
+  return false;
+}
+    </script>
+  </head>
+  <body>
+    {% for feed in feeds %}
+      <b>{{ feed.title }}</b>
+      {% for entry in feed.entries %}
+        <p><a href='javascript:void(0);' onclick='OnLinkClick("{{ entry.url }}", "{{ feed.id }}", "{{ entry.id }}");'>{{ entry.title }}</a></p>
+        <blockquote>
+          {{ entry.description }}
+        </blockquote>
+      {% endfor %}
+    {% endfor %}
+  </body>
+</html>

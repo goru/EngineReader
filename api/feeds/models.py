@@ -5,7 +5,8 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
-from api.feeds import parsers, utils
+import utils
+from api.feeds import parsers
 
 class FeedManager(object):
     @classmethod
