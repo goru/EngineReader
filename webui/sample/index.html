@@ -1,24 +1,73 @@
+<!DOCTYPE html>
 <html>
+
   <head>
-    <script language="javascript" type="text/javascript">
-function OnLinkClick(entryUrl, feedId, entryId) {
-  window.open(entryUrl);
-  var req = new XMLHttpRequest();
-  req.open('POST', '/api/feeds/' + feedId + '/' + entryId + '/read');
-  req.send("");
-  return false;
-}
+    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/bootstrap-responsive.css" rel="stylesheet">
+
+    <script>
+      function loadEntries(id) {
+        $.getJSON('/api/feeds/' + id + '/unread', function(json) {
+          for(var i in json.entries) {
+            var entry = json.entries[i];
+
+            $('#' + id).append('<div class="span12" id="wrap-' + entry.id + '"></div>');
+
+            $('#wrap-' + entry.id).append('<h4 id="title-' + entry.id + '" href="'
+              + entry.url + '" feed="' + id + '" entry="' + entry.id + '"><a>'
+              + entry.title + '</a></h4>');
+            $('#wrap-' + entry.id).append('<blockquote id="desc-'+ entry.id
+              + '" feed="' + id + '" entry="' + entry.id + '">'
+              + entry.description + '</blockquote>');
+
+            $('#title-' + entry.id).click(function() {
+              var feedId = $(this).attr('feed');
+              var entryId = $(this).attr('entry');
+              var url = $(this).attr('href');
+
+              window.open(url);
+              $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
+            });
+
+            $('#desc-' + entry.id).click(function() {
+              var feedId = $(this).attr('feed');
+              var entryId = $(this).attr('entry');
+
+              $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
+            });
+          }
+        });
+      }
+
+      $(function() {
+        $('#header').html('<div class="alert alert-info">now loading...</div>');
+        $.getJSON('/api/feeds/', function(json) {
+          for(var i in json.feeds) {
+            var feed = json.feeds[i];
+
+            $('#body').append('<div class="span12"><h3>' + feed.title
+              + '</h3><div class="row-fluid" id="' + feed.id + '"></div></div>');
+
+            loadEntries(feed.id);
+          }
+
+          $('#header').html('');
+        });
+      });
     </script>
+
   </head>
+
   <body>
-    {% for feed in feeds %}
-      <b>{{ feed.title }}</b>
-      {% for entry in feed.entries %}
-        <p><a href='javascript:void(0);' onclick='OnLinkClick("{{ entry.url }}", "{{ feed.id }}", "{{ entry.id }}");'>{{ entry.title }}</a></p>
-        <blockquote>
-          {{ entry.description }}
-        </blockquote>
-      {% endfor %}
-    {% endfor %}
+    <div class='container-fluid'>
+      <div class='row-fluid' id='header'></div>
+      <div class='row-fluid' id='body'></div>
+      <div class='row-fluid' id='footer'></div>
+    </div>
   </body>
+
 </html>
