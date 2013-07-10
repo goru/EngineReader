@@ -50,7 +50,7 @@
             var feed = json.feeds[i];
 
             $('#body').append('<div class="span12"><h3>' + feed.title
-              + '</h3><div class="row-fluid" id="' + feed.id + '"></div></div>');
+              + '</h3><div class="row" id="' + feed.id + '"></div></div>');
 
             loadEntries(feed.id);
           }
@@ -63,10 +63,10 @@
   </head>
 
   <body>
-    <div class='container-fluid'>
-      <div class='row-fluid' id='header'></div>
-      <div class='row-fluid' id='body'></div>
-      <div class='row-fluid' id='footer'></div>
+    <div class='container'>
+      <div class='row' id='header'></div>
+      <div class='row' id='body'></div>
+      <div class='row' id='footer'></div>
     </div>
   </body>
 
