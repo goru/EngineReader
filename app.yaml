@@ -9,4 +9,7 @@ handlers:
   script: api/feeds/reader.py
 
 - url: /
+  script: webui/index.py
+
+- url: /
   static_dir: webui/sample/
