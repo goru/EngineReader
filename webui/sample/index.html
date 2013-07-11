@@ -25,11 +25,11 @@
               + '" feed="' + id + '" entry="' + entry.id + '">'
               + entry.description + '</blockquote>');
             $('#wrap-' + entry.id).append('<div class="row">'
-              + '<div class="span1 offset11">'
+              + '<div class="span2 offset10"><p class="text-right">'
               + '<button type="button" class="btn btn-primary" data-toggle="button" '
               + 'id="button-'+ entry.id + '" feed="' + id + '" entry="' + entry.id + '">'
-              + 'Read</button>'
-              + '</div></div>');
+              + '<i class="icon-ok icon-white"></i> Read</button>'
+              + '</p></div></div>');
 
             $('#title-' + entry.id).click(function() {
               var feedId = $(this).attr('feed');
