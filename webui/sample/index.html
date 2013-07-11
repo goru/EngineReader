@@ -17,27 +17,38 @@
 
             $('#' + id).append('<div class="span12" id="wrap-' + entry.id + '"></div>');
 
-            $('#wrap-' + entry.id).append('<h4 id="title-' + entry.id + '" href="'
-              + entry.url + '" feed="' + id + '" entry="' + entry.id + '"><a>'
+            $('#wrap-' + entry.id).append('<h4><a id="title-' + entry.id
+              + '" href="javascript:void(0);" link="' + entry.url
+              + '" feed="' + id + '" entry="' + entry.id + '">'
               + entry.title + '</a></h4>');
             $('#wrap-' + entry.id).append('<blockquote id="desc-'+ entry.id
               + '" feed="' + id + '" entry="' + entry.id + '">'
               + entry.description + '</blockquote>');
+            $('#wrap-' + entry.id).append('<div class="row">'
+              + '<div class="span1 offset11">'
+              + '<button type="button" class="btn btn-primary" data-toggle="button" '
+              + 'id="button-'+ entry.id + '" feed="' + id + '" entry="' + entry.id + '">'
+              + 'Read</button>'
+              + '</div></div>');
 
             $('#title-' + entry.id).click(function() {
               var feedId = $(this).attr('feed');
               var entryId = $(this).attr('entry');
-              var url = $(this).attr('href');
+              var url = $(this).attr('link');
 
               window.open(url);
               $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
             });
 
-            $('#desc-' + entry.id).click(function() {
+            $('#button-' + entry.id).click(function() {
               var feedId = $(this).attr('feed');
               var entryId = $(this).attr('entry');
 
-              $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
+              if ($(this).hasClass('active')) {
+                $.post('/api/feeds/' + feedId + '/' + entryId + '/unread');
+              } else {
+                $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
+              }
             });
           }
         });
