@@ -78,6 +78,27 @@
 
           $('#header').html('');
         });
+
+        $('#addModal').on('show', function () {
+          $('#inputTitle').val('');
+          $('#inputURL').val('');
+          $('#addModalButton').button('reset');
+        });
+
+        $('#addModalButton').click(function() {
+          $(this).button('loading');
+          var titleVal = $('#inputTitle').val();
+          var urlVal = $('#inputURL').val();
+          var data = JSON.stringify({ "title": titleVal, "url": urlVal });
+
+          $.post('/api/feeds/', data, function(data) {
+            $('#addModal').modal('hide');
+            window.location = '/';
+          }).fail(function () {
+          }).always(function () {
+            $('#addModalButton').button('reset');
+          });
+        });
       });
     </script>
 
@@ -97,31 +118,46 @@
             <li class="active"><a href="/"><i class="icon-home icon-white"></i> Home</a></li>
           </ul>
           <ul class="nav pull-right">
-            <li><a href="#AddModal" data-toggle="modal"><i class="icon-plus-sign icon-white"></i> Add</a></li>
-            <li><a href="#ImportModal" data-toggle="modal"><i class="icon-upload icon-white"></i> Import</a></li>
+            <li><a href="#addModal" data-toggle="modal"><i class="icon-plus-sign icon-white"></i> Add</a></li>
+            <li><a href="#importModal" data-toggle="modal"><i class="icon-upload icon-white"></i> Import</a></li>
           </ul>
         </div>
       </div>
     </div>
 
-    <div id="AddModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="AddModalLabel" aria-hidden="true">
+    <div id="addModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="AddModalLabel">Add New Feed</h3>
+        <h3 id="addModalLabel">Add New Feed</h3>
         </div>
         <div class="modal-body">
-        <p>One fine body…</p>
+
+          <form class="form-horizontal">
+            <div class="control-group">
+              <label class="control-label" for="inputTitle">Title</label>
+              <div class="controls">
+                <input class="input-xlarge" id='inputTitle' type="text" placeholder="Title">
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="inputURL">URL</label>
+              <div class="controls">
+                <input class="input-xlarge" id='inputURL' type="text" placeholder="URL">
+              </div>
+            </div>
+          </form>
+
         </div>
         <div class="modal-footer">
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        <button class="btn btn-primary">Add</button>
+        <button id='addModalButton' class="btn btn-primary" data-loading-text="Adding...">Add</button>
       </div>
     </div>
 
-    <div id="ImportModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="ImportModalLabel" aria-hidden="true">
+    <div id="importModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="ImportModalLabel">Import Feeds</h3>
+        <h3 id="importModalLabel">Import Feeds</h3>
         </div>
         <div class="modal-body">
         <p>One fine body…</p>
