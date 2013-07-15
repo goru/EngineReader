@@ -10,14 +10,6 @@
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
 
     <script type="text/javascript">
-      function setEntryReadState(feedId, entryId, state) {
-        if (state) {
-          $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
-        } else {
-          $.post('/api/feeds/' + feedId + '/' + entryId + '/unread');
-        }
-      }
-
       function loadEntries(feedId) {
         $.getJSON('/api/feeds/' + feedId + '/unread', function(json) {
           for(var i in json.entries) {
@@ -26,8 +18,8 @@
             $('#' + feedId).append('<div class="span12" id="wrap-' + entry.id + '"></div>');
 
             $('#wrap-' + entry.id).append('<h4><a id="title-' + entry.id
-              + '" href="' + entry.url + '" target="_blank" feed="' + feedId
-              + '" entry="' + entry.id + '">' + entry.title + '</a></h4>');
+              + '" href="' + entry.url + '" target="_blank" entry="'
+              + entry.id + '">' + entry.title + '</a></h4>');
 
             $('#wrap-' + entry.id).append('<blockquote>'
               + entry.description + '</blockquote>');
@@ -42,10 +34,10 @@
               switch(event.which) {
                 case 1: // left button
                 case 2: // middle button
-                  var feedId = $(this).attr('feed');
                   var entryId = $(this).attr('entry');
-                  setEntryReadState(feedId, entryId, true);
-                  $('#button-' + entryId).addClass('active');
+                  if(!$('#button-' + entryId).hasClass('active')) {
+                    $('#button-' + entryId).click();
+                  }
                   break;
                 case 3: // right button
                 default:
@@ -55,8 +47,13 @@
             $('#button-' + entry.id).click(function() {
               var feedId = $(this).attr('feed');
               var entryId = $(this).attr('entry');
-              var state = ! $('#button-' + entryId).hasClass('active');
-              setEntryReadState(feedId, entryId, state);
+              var state = $(this).hasClass('active');
+
+              if (state) {
+                $.post('/api/feeds/' + feedId + '/' + entryId + '/unread');
+              } else {
+                $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
+              }
             });
           }
         });
