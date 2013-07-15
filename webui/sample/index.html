@@ -56,6 +56,9 @@
               } else {
                 $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
               }
+
+              $(this).toggleClass('btn-primary');
+              $(this).children('i').toggleClass('icon-white');
             });
           }
         });
