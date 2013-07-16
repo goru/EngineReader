@@ -37,7 +37,8 @@ class FeedImportHandler(HandlerBase):
     def post(self):
         self.response.headers['Content-Type'] = 'application/json'
 
-        dom = utils.parseXmlString(utils.decodeByteString(self.request.body))
+        fileBody = self.request.get('opml')
+        dom = utils.parseXmlString(utils.decodeByteString(fileBody))
         opml = parsers.OpmlParser.create(dom)
 
         feeds = []
