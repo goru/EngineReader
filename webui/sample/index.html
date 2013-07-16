@@ -65,7 +65,7 @@
       }
 
       $(function() {
-        $('#header').html('<div class="alert alert-info">now loading...</div>');
+        $('#header').html('<div class="alert alert-info">Loading...</div>');
         $.getJSON('/api/feeds/', function(json) {
           for(var i in json.feeds) {
             var feed = json.feeds[i];
@@ -92,21 +92,51 @@
           var data = JSON.stringify({ "title": titleVal, "url": urlVal });
 
           $.post('/api/feeds/', data, function(data) {
-            $('#addModal').modal('hide');
             window.location = '/';
           }).fail(function () {
           }).always(function () {
             $('#addModalButton').button('reset');
           });
         });
+
+        $('#importModal').on('show', function () {
+          $('#importDummyFile').val('');
+          $('#inputOPML').html('OPML File');
+          $('#importModalButton').button('reset');
+        });
+
+        $('#inputOPMLButton').click(function () {
+          $('#importDummyFile').click();
+        });
+
+        $('#importDummyFile').change(function () {
+          $('#inputOPML').html($(this).val());
+        });
+
+        $('#importModalButton').click(function() {
+          $(this).button('loading');
+
+          var $form, fd;
+          $form = $('#importDummyForm');
+          fd = new FormData($form[0]);
+          $.ajax($form.attr("action"), {
+            type: 'post',
+            processData: false,
+            contentType: false,
+            data: fd,
+            dataType: 'html',
+            success: function(data){
+              window.location = '/';
+            },
+            error: function() {
+            },
+            complete: function() {
+              $('#importModalButton').button('reset');
+            }
+          });
+        });
       });
     </script>
-
-    <style type="text/css">
-      #padding-for-navbar {
-        padding-top: 40px;
-      }
-    </style>
 
   </head>
 
@@ -136,13 +166,13 @@
             <div class="control-group">
               <label class="control-label" for="inputTitle">Title</label>
               <div class="controls">
-                <input class="input-xlarge" id='inputTitle' type="text" placeholder="Title">
+                <input class="input-large" id='inputTitle' type="text" placeholder="Title">
               </div>
             </div>
             <div class="control-group">
               <label class="control-label" for="inputURL">URL</label>
               <div class="controls">
-                <input class="input-xlarge" id='inputURL' type="text" placeholder="URL">
+                <input class="input-large" id='inputURL' type="text" placeholder="URL">
               </div>
             </div>
           </form>
@@ -154,21 +184,40 @@
       </div>
     </div>
 
+    <div style='display: none'>
+      <form id='importDummyForm' method='post' action='/api/feeds/import' enctype='multipart/form-data'>
+        <input type="file" id="importDummyFile" name="opml">
+        <input id="importDummySubmit" type="submit">
+      </form>
+    </div>
+
     <div id="importModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
         <h3 id="importModalLabel">Import Feeds</h3>
         </div>
         <div class="modal-body">
-        <p>One fine body…</p>
+
+          <form class="form-horizontal">
+            <div class="control-group">
+              <label class="control-label" for="inputOPMLContainer">OPML File</label>
+              <div class="controls">
+                <div class='input-append' id='inputOPMLContainer'>
+                  <span class="input-large uneditable-input" id='inputOPML' type="text">OPML File</span>
+                  <button class="btn" type="button" id='inputOPMLButton'>Select</button>
+                </div>
+              </div>
+            </div>
+          </form>
+
         </div>
         <div class="modal-footer">
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        <button class="btn btn-primary">Import</button>
+        <button id='importModalButton' class="btn btn-primary" data-loading-text="Importing...">Import</button>
       </div>
     </div>
 
-    <div class='container visible-desktop' id='padding-for-navbar'></div>
+    <div class='container visible-desktop' style='padding-top: 40px'></div>
 
     <div class='container'>
       <div class='row' id='header'></div>
