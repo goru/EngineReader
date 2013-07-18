@@ -7,7 +7,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 
 import time
 
-import utils
+from api import utils
 from api.feeds import models, parsers
 
 class HandlerBase(webapp.RequestHandler):
