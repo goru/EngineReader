@@ -19,7 +19,7 @@
           for(var i in json.entries) {
             var entry = json.entries[i];
 
-            $('#' + feedId).append('<div class="span12 entry-container" id="wrap-' + entry.id + '"></div>');
+            $('#' + feedId).append('<div class="span12"><div class="container entry-container" id="wrap-' + entry.id + '"></div></div>');
 
             $('#wrap-' + entry.id).append('<div class="entry-header"><h4><a id="title-' + entry.id
               + '" href="' + entry.url + '" target="_blank" entry="'
