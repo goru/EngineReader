@@ -21,7 +21,7 @@
 
             $('#' + feedId).append('<div class="span12"><div class="container entry-container" id="wrap-' + entry.id + '"></div></div>');
 
-            $('#wrap-' + entry.id).append('<div class="entry-header"><h4><a id="title-' + entry.id
+            $('#wrap-' + entry.id).append('<div class="entry-header"><h4><a class="entry-link" id="title-' + entry.id
               + '" href="' + entry.url + '" target="_blank" entry="'
               + entry.id + '">' + entry.title + '</a></h4></div>');
 
@@ -29,7 +29,7 @@
               + entry.description + '</div>');
 
             $('#wrap-' + entry.id).append('<div class="entry-footer">'
-              + '<button type="button" class="btn btn-primary" data-toggle="button" '
+              + '<button type="button" class="btn btn-primary entry-read-button" data-toggle="button" '
               + 'id="button-'+ entry.id + '" feed="' + feedId + '" entry="' + entry.id + '">'
               + '<i class="icon-check icon-white"></i> Read</button>'
               + '</div>');
@@ -139,6 +139,15 @@
         });
       });
 
+      function getCurrentEntry() {
+        var elm = $('.entry-container-selected');
+        if (elm.length != 0) {
+          return elm.eq(0);
+        } else {
+          return null;
+        }
+      }
+
       $(window).keydown(function (event) {
         if (event.shiftKey || event.ctrlKey) {
           return true;
@@ -146,6 +155,30 @@
 
         switch(event.keyCode) {
           case 74: // j, next entry
+            var entries = $('.entry-container');
+            var current = getCurrentEntry();
+
+            var index = 0;
+            if (current != null) {
+              index = entries.index(current) + 1;
+            }
+
+            if (entries.length > index) {
+              if (current != null) {
+                current.removeClass('entry-container-selected');
+              }
+
+              var next = entries.eq(index);
+              next.addClass('entry-container-selected');
+
+              var pos = next.offset().top;
+              $('html,body').animate({ scrollTop: pos - 50 }, 'fast');
+
+              var button = $('.entry-container-selected .entry-read-button').eq(0);
+              if (!button.hasClass('active')) {
+                button.click();
+              }
+            }
           case 75: // k, prev entry
           case 77: // m, toggle read,unread
           case 86: // v, view entry
@@ -177,6 +210,10 @@
         border-radius: 6px 6px 6px 6px;
         margin: 0px 0px 10px;
         background-color: rgb(255, 255, 255);
+      }
+
+      .entry-container-selected {
+        border: 1px solid rgba(82, 168, 236, 0.8);
       }
 
       .entry-header {
