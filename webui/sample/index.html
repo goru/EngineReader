@@ -138,6 +138,25 @@
           });
         });
       });
+
+      $(window).keydown(function (event) {
+        if (event.shiftKey || event.ctrlKey) {
+          return true;
+        }
+
+        switch(event.keyCode) {
+          case 74: // j, next entry
+          case 75: // k, prev entry
+          case 77: // m, toggle read,unread
+          case 86: // v, view entry
+            break;
+          default:
+            return true;
+        }
+
+        event.preventDefault();
+        return true;
+      });
     </script>
 
     <style type="text/css">
