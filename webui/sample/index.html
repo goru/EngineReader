@@ -14,6 +14,21 @@
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
 
     <script type="text/javascript">
+      function readUnreadButton(button) {
+        var feedId = button.attr('feed');
+        var entryId = button.attr('entry');
+        var state = button.hasClass('active');
+
+        if (state) {
+          $.post('/api/feeds/' + feedId + '/' + entryId + '/unread');
+        } else {
+          $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
+        }
+
+        button.toggleClass('btn-primary');
+        button.children('i').toggleClass('icon-white');
+      }
+
       function loadEntries(feedId) {
         $.getJSON('/api/feeds/' + feedId + '/unread', function(json) {
           for(var i in json.entries) {
@@ -34,33 +49,22 @@
               + '<i class="icon-check icon-white"></i> Read</button>'
               + '</div>');
 
-            $('#title-' + entry.id).mousedown(function(event) {
-              switch(event.which) {
-                case 1: // left button
-                case 2: // middle button
-                  var entryId = $(this).attr('entry');
-                  if(!$('#button-' + entryId).hasClass('active')) {
-                    $('#button-' + entryId).click();
-                  }
-                  break;
-                case 3: // right button
-                default:
+            $('#wrap-' + entry.id).click(function() {
+              var current = getCurrentEntry();
+              if (current != null) {
+                current.removeClass('entry-container-selected');
+              }
+              $(this).addClass('entry-container-selected');
+
+              var button = $('.entry-container-selected .entry-read-button').eq(0);
+              if (!button.hasClass('active')) {
+                button.button('toggle');
+                readUnreadButton(button);
               }
             });
 
             $('#button-' + entry.id).click(function() {
-              var feedId = $(this).attr('feed');
-              var entryId = $(this).attr('entry');
-              var state = $(this).hasClass('active');
-
-              if (state) {
-                $.post('/api/feeds/' + feedId + '/' + entryId + '/unread');
-              } else {
-                $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
-              }
-
-              $(this).toggleClass('btn-primary');
-              $(this).children('i').toggleClass('icon-white');
+              readUnreadButton($(this));
             });
           }
         });
@@ -148,6 +152,7 @@
         }
       }
 
+      // hook keyboard input
       $(window).keydown(function (event) {
         if (event.shiftKey || event.ctrlKey) {
           return true;
@@ -176,7 +181,8 @@
 
               var button = $('.entry-container-selected .entry-read-button').eq(0);
               if (!button.hasClass('active')) {
-                button.click();
+                button.button('toggle');
+                readUnreadButton(button);
               }
             }
           case 75: // k, prev entry
