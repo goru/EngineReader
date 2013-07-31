@@ -63,6 +63,13 @@
               }
             });
 
+            $('#title-' + entry.id).mousedown(function(event) {
+              if (event.which == 2) { // middle button
+                  var entryId = $(this).attr('entry');
+                  $('#wrap-' + entryId).click();
+              }
+            });
+
             $('#button-' + entry.id).click(function() {
               readUnreadButton($(this));
             });
