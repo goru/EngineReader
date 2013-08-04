@@ -28,11 +28,19 @@ class FeedManager(object):
         return FeedModel.get_by_id(long(feedId))
 
     @classmethod
-    def getEntries(cls, feed, pagingKey):
+    def getEntries(cls, pagingKey):
+        return EntryModel.gql('WHERE pagingKey < :1 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey))
+
+    @classmethod
+    def getUnreadEntries(cls, pagingKey):
+        return EntryModel.gql('WHERE pagingKey < :1 AND read = :2 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey), False)
+
+    @classmethod
+    def getEntriesByFeed(cls, feed, pagingKey):
         return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey))
 
     @classmethod
-    def getUnreadEntries(cls, feed, pagingKey):
+    def getUnreadEntriesByFeed(cls, feed, pagingKey):
         return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 AND read = :3 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey), False)
 
     @classmethod
@@ -143,4 +151,5 @@ class EntryModel(ModelBase):
                 'created': utils.dateTimeToUnix(self.created),
                 'modified': utils.dateTimeToUnix(self.modified),
                 'pagingKey': self.pagingKey,
-                'id': self.key().name()}
+                'id': self.key().name(),
+                'feedId': self.feed.key().id()}

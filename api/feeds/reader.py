@@ -15,7 +15,7 @@ class HandlerBase(webapp.RequestHandler):
         self.error(404)
         self.response.out.write(utils.dumpsJSON({}))
 
-class FeedCollectionHandler(HandlerBase):
+class FeedsHandler(HandlerBase):
     def get(self):
         self.response.headers['Content-Type'] = 'application/json'
 
@@ -32,6 +32,25 @@ class FeedCollectionHandler(HandlerBase):
         feed = models.FeedManager.createFeed(dic)
 
         self.response.out.write(utils.dumpsJSON(feed.toDict()))
+
+class FeedsEntryHandler(HandlerBase):
+    def get(self, action, pagingKey=None):
+        self.response.headers['Content-Type'] = 'application/json'
+
+        if not pagingKey:
+            pagingKey = utils.currentUnix()
+
+        queryResult = []
+        if action == 'all':
+            queryResult = models.FeedManager.getEntries(pagingKey)
+        elif action == 'unread':
+            queryResult = models.FeedManager.getUnreadEntries(pagingKey)
+
+        entries = []
+        for entry in queryResult:
+            entries.append(entry.toDict())
+
+        self.response.out.write(utils.dumpsJSON({'entries': entries}))
 
 class FeedImportHandler(HandlerBase):
     def post(self):
@@ -98,18 +117,15 @@ class FeedEntryHandler(HandlerBase):
 
         entryQuery = []
         if action == 'all':
-            entryQuery = models.FeedManager.getEntries(feed, pagingKey)
+            entryQuery = models.FeedManager.getEntriesByFeed(feed, pagingKey)
         elif action == 'unread':
-            entryQuery = models.FeedManager.getUnreadEntries(feed, pagingKey)
+            entryQuery = models.FeedManager.getUnreadEntriesByFeed(feed, pagingKey)
 
         entries = []
         for entry in entryQuery:
             entries.append(entry.toDict())
 
-        feedDict = feed.toDict()
-        feedDict['entries'] = entries
-
-        self.response.out.write(utils.dumpsJSON(feedDict))
+        self.response.out.write(utils.dumpsJSON({'entries': entries}))
 
 class EntryReadUnreadHandler(HandlerBase):
     def post(self, feedId, entryId, action):
@@ -124,7 +140,9 @@ class EntryReadUnreadHandler(HandlerBase):
         models.FeedManager.setEntryStatus(entry, stat)
 
 application = webapp.WSGIApplication(
-    [('/api/feeds/?', FeedCollectionHandler),
+    [('/api/feeds/?', FeedsHandler),
+     ('/api/feeds/(all|unread)/?', FeedsEntryHandler),
+     ('/api/feeds/(all|unread)/([0-9.]+)/?', FeedsEntryHandler),
      ('/api/feeds/import', FeedImportHandler),
      ('/api/feeds/update', FeedUpdateHandler),
      ('/api/feeds/(\d+)/?', FeedHandler),

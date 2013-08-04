@@ -11,6 +11,12 @@ indexes:
 # your application using appcfg.py.
 
 - kind: EntryModel
+  properties:
+  - name: read
+  - name: pagingKey
+    direction: desc
+
+- kind: EntryModel
   ancestor: yes
   properties:
   - name: pagingKey
