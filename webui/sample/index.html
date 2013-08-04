@@ -213,6 +213,11 @@
 
             break;
           case 77: // m, toggle read,unread
+            var button = $('.entry-container-selected .entry-read-button').eq(0);
+            readUnreadButton(button);
+            button.button('toggle');
+
+            break;
           case 86: // v, view entry
             break;
           default:
