@@ -29,27 +29,26 @@
         button.children('i').toggleClass('icon-white');
       }
 
-      function loadEntries(feedId) {
-        $.getJSON('/api/feeds/' + feedId + '/unread', function(json) {
-          for(var i in json.entries) {
-            var entry = json.entries[i];
+      function createEntry(feeds, entry) {
+            $('#body').append('<div class="entry-container" id="wrap-' + entry.id + '"></div>');
+            var entryElement = $('#wrap-' + entry.id);
 
-            $('#' + feedId).append('<div class="span12"><div class="container entry-container" id="wrap-' + entry.id + '"></div></div>');
-
-            $('#wrap-' + entry.id).append('<div class="entry-header"><h4><a class="entry-link" id="title-' + entry.id
+            entryElement.append('<div class="entry-header"><h4><a class="entry-link" id="title-' + entry.id
               + '" href="' + entry.url + '" target="_blank" entry="'
               + entry.id + '">' + entry.title + '</a></h4></div>');
 
-            $('#wrap-' + entry.id).append('<div class="entry-body">'
-              + entry.description + '</div>');
+            entryElement.append('<div class="entry-body">'
+              + entry.description
+              + '<div class="text-right muted">'
+              + feeds[entry.feedId].title + '</div></div>');
 
-            $('#wrap-' + entry.id).append('<div class="entry-footer">'
+            entryElement.append('<div class="entry-footer">'
               + '<button type="button" class="btn btn-primary entry-read-button" data-toggle="button" '
-              + 'id="button-'+ entry.id + '" feed="' + feedId + '" entry="' + entry.id + '">'
+              + 'id="button-'+ entry.id + '" feed="' + entry.feedId + '" entry="' + entry.id + '">'
               + '<i class="icon-check icon-white"></i> Read</button>'
               + '</div>');
 
-            $('#wrap-' + entry.id).click(function() {
+            entryElement.click(function() {
               var current = getCurrentEntry();
               if (current != null) {
                 current.removeClass('entry-container-selected');
@@ -73,23 +72,27 @@
             $('#button-' + entry.id).click(function() {
               readUnreadButton($(this));
             });
-          }
-        });
       }
+
 
       $(function() {
         $('#header').html('<div class="alert alert-info">Loading...</div>');
+
         $.getJSON('/api/feeds/', function(json) {
+          var feeds = {};
           for(var i in json.feeds) {
             var feed = json.feeds[i];
-
-            $('#body').append('<div class="span12"><h3>' + feed.title
-              + '</h3><div class="row" id="' + feed.id + '"></div></div>');
-
-            loadEntries(feed.id);
+            feeds[feed.id] = feed;
           }
 
-          $('#header').html('');
+          $.getJSON('/api/feeds/unread', function(json) {
+            for(var i in json.entries) {
+              var entry = json.entries[i];
+              createEntry(feeds, entry);
+            }
+
+            $('#header').html('');
+          });
         });
 
         $('#addModal').on('show', function () {
@@ -159,41 +162,62 @@
         }
       }
 
+      function changeSelectedEntry(entries, current, index) {
+        if (current != null) {
+          current.removeClass('entry-container-selected');
+        }
+
+        var next = entries.eq(index);
+        next.addClass('entry-container-selected');
+
+        var pos = next.offset().top;
+        $('html,body').animate({ scrollTop: pos - 50 }, 100); // http://api.jquery.com/animate/
+
+        var button = $('.entry-container-selected .entry-read-button').eq(0);
+        if (!button.hasClass('active')) {
+          readUnreadButton(button);
+          button.button('toggle');
+        }
+      }
+
       // hook keyboard input
       $(window).keydown(function (event) {
         if (event.shiftKey || event.ctrlKey) {
           return true;
         }
 
+        var entries = $('.entry-container');
+        var current = getCurrentEntry();
+
         switch(event.keyCode) {
           case 74: // j, next entry
-            var entries = $('.entry-container');
-            var current = getCurrentEntry();
-
             var index = 0;
             if (current != null) {
               index = entries.index(current) + 1;
             }
 
             if (entries.length > index) {
-              if (current != null) {
-                current.removeClass('entry-container-selected');
-              }
-
-              var next = entries.eq(index);
-              next.addClass('entry-container-selected');
-
-              var pos = next.offset().top;
-              $('html,body').animate({ scrollTop: pos - 50 }, 'fast');
-
-              var button = $('.entry-container-selected .entry-read-button').eq(0);
-              if (!button.hasClass('active')) {
-                readUnreadButton(button);
-                button.button('toggle');
-              }
+              changeSelectedEntry(entries, current, index);
             }
+
+            break;
           case 75: // k, prev entry
+            var index = 0;
+            if (current != null) {
+              index = entries.index(current) - 1;
+            }
+
+            if (index >= 0) {
+              changeSelectedEntry(entries, current, index);
+            }
+
+            break;
           case 77: // m, toggle read,unread
+            var button = $('.entry-container-selected .entry-read-button').eq(0);
+            readUnreadButton(button);
+            button.button('toggle');
+
+            break;
           case 86: // v, view entry
             break;
           default:
@@ -211,7 +235,7 @@
       }
 
       #padding-for-desktop {
-        padding-top: 40px
+        padding-top: 50px
       }
 
       .hidden-container {
@@ -221,7 +245,7 @@
       .entry-container {
         border: 1px solid rgba(0, 0, 0, 0.3);
         border-radius: 6px 6px 6px 6px;
-        margin: 0px 0px 10px;
+        margin: 0px 0px 10px 0px;
         background-color: rgb(255, 255, 255);
       }
 
@@ -265,74 +289,76 @@
       </div>
     </div>
 
-    <div id="addModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="addModalLabel">Add New Feed</h3>
-        </div>
-        <div class="modal-body">
-
-          <form class="form-horizontal">
-            <div class="control-group">
-              <label class="control-label" for="inputTitle">Title</label>
-              <div class="controls">
-                <input class="input-large" id='inputTitle' type="text" placeholder="Title">
-              </div>
-            </div>
-            <div class="control-group">
-              <label class="control-label" for="inputURL">URL</label>
-              <div class="controls">
-                <input class="input-large" id='inputURL' type="text" placeholder="URL">
-              </div>
-            </div>
-          </form>
-
-        </div>
-        <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        <button id='addModalButton' class="btn btn-primary" data-loading-text="Adding...">Add</button>
-      </div>
-    </div>
-
-    <div class='hidden-container'>
-      <form id='importDummyForm' method='post' action='/api/feeds/import' enctype='multipart/form-data'>
-        <input type="file" id="importDummyFile" name="opml">
-        <input id="importDummySubmit" type="submit">
-      </form>
-    </div>
-
-    <div id="importModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="importModalLabel">Import Feeds</h3>
-        </div>
-        <div class="modal-body">
-
-          <form class="form-horizontal">
-            <div class="control-group">
-              <label class="control-label" for="inputOPMLContainer">OPML File</label>
-              <div class="controls">
-                <div class='input-append' id='inputOPMLContainer'>
-                  <span class="input-large uneditable-input" id='inputOPML' type="text">OPML File</span>
-                  <button class="btn" type="button" id='inputOPMLButton'>Select</button>
-                </div>
-              </div>
-            </div>
-          </form>
-
-        </div>
-        <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        <button id='importModalButton' class="btn btn-primary" data-loading-text="Importing...">Import</button>
-      </div>
-    </div>
-
     <div class='container visible-desktop' id='padding-for-desktop'></div>
 
     <div class='container'>
-      <div class='row' id='header'></div>
-      <div class='row' id='body'></div>
-      <div class='row' id='footer'></div>
+      <div id='header'></div>
+      <div id='body'></div>
+      <div id='footer'></div>
+    </div>
+
+    <div id='hidden-elements'>
+      <div id="addModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+          <h3 id="addModalLabel">Add New Feed</h3>
+          </div>
+          <div class="modal-body">
+
+            <form class="form-horizontal">
+              <div class="control-group">
+                <label class="control-label" for="inputTitle">Title</label>
+                <div class="controls">
+                  <input class="input-large" id='inputTitle' type="text" placeholder="Title">
+                </div>
+              </div>
+              <div class="control-group">
+                <label class="control-label" for="inputURL">URL</label>
+                <div class="controls">
+                  <input class="input-large" id='inputURL' type="text" placeholder="URL">
+                </div>
+              </div>
+            </form>
+
+          </div>
+          <div class="modal-footer">
+          <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+          <button id='addModalButton' class="btn btn-primary" data-loading-text="Adding...">Add</button>
+        </div>
+      </div>
+
+      <div class='hidden-container'>
+        <form id='importDummyForm' method='post' action='/api/feeds/import' enctype='multipart/form-data'>
+          <input type="file" id="importDummyFile" name="opml">
+          <input id="importDummySubmit" type="submit">
+        </form>
+      </div>
+
+      <div id="importModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+          <h3 id="importModalLabel">Import Feeds</h3>
+          </div>
+          <div class="modal-body">
+
+            <form class="form-horizontal">
+              <div class="control-group">
+                <label class="control-label" for="inputOPMLContainer">OPML File</label>
+                <div class="controls">
+                  <div class='input-append' id='inputOPMLContainer'>
+                    <span class="input-large uneditable-input" id='inputOPML' type="text">OPML File</span>
+                    <button class="btn" type="button" id='inputOPMLButton'>Select</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+          </div>
+          <div class="modal-footer">
+          <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+          <button id='importModalButton' class="btn btn-primary" data-loading-text="Importing...">Import</button>
+        </div>
+      </div>
     </div>
   </body>
 
