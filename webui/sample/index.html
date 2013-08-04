@@ -162,40 +162,56 @@
         }
       }
 
+      function changeSelectedEntry(entries, current, index) {
+        if (current != null) {
+          current.removeClass('entry-container-selected');
+        }
+
+        var next = entries.eq(index);
+        next.addClass('entry-container-selected');
+
+        var pos = next.offset().top;
+        $('html,body').animate({ scrollTop: pos - 50 }, 100); // http://api.jquery.com/animate/
+
+        var button = $('.entry-container-selected .entry-read-button').eq(0);
+        if (!button.hasClass('active')) {
+          readUnreadButton(button);
+          button.button('toggle');
+        }
+      }
+
       // hook keyboard input
       $(window).keydown(function (event) {
         if (event.shiftKey || event.ctrlKey) {
           return true;
         }
 
+        var entries = $('.entry-container');
+        var current = getCurrentEntry();
+
         switch(event.keyCode) {
           case 74: // j, next entry
-            var entries = $('.entry-container');
-            var current = getCurrentEntry();
-
             var index = 0;
             if (current != null) {
               index = entries.index(current) + 1;
             }
 
             if (entries.length > index) {
-              if (current != null) {
-                current.removeClass('entry-container-selected');
-              }
-
-              var next = entries.eq(index);
-              next.addClass('entry-container-selected');
-
-              var pos = next.offset().top;
-              $('html,body').animate({ scrollTop: pos - 50 }, 'fast');
-
-              var button = $('.entry-container-selected .entry-read-button').eq(0);
-              if (!button.hasClass('active')) {
-                readUnreadButton(button);
-                button.button('toggle');
-              }
+              changeSelectedEntry(entries, current, index);
             }
+
+            break;
           case 75: // k, prev entry
+            var index = 0;
+            if (current != null) {
+              index = entries.index(current) - 1;
+            }
+
+            if (index >= 0) {
+              changeSelectedEntry(entries, current, index);
+            }
+
+            break;
           case 77: // m, toggle read,unread
           case 86: // v, view entry
             break;
