@@ -74,9 +74,8 @@
             });
       }
 
-
-      $(function() {
-        $('#header').html('<div class="alert alert-info">Loading...</div>');
+      function loadUnreadEntries(pagingKey) {
+        $('#footer').html('<div class="alert alert-info text-center">Loading...</div>');
 
         $.getJSON('/api/feeds/', function(json) {
           var feeds = {};
@@ -85,15 +84,27 @@
             feeds[feed.id] = feed;
           }
 
-          $.getJSON('/api/feeds/unread', function(json) {
+          $.getJSON('/api/feeds/unread/' + pagingKey, function(json) {
             for(var i in json.entries) {
               var entry = json.entries[i];
               createEntry(feeds, entry);
             }
 
-            $('#header').html('');
+            if (json.entries.length == 100) {
+              var entry = json.entries[99];
+              $('#footer').html('<div class="alert alert-info text-center" id="nextPage">Read more</div>');
+              $('#nextPage').click(function () {
+                loadUnreadEntries(entry.pagingKey);
+              });
+            } else {
+              $('#footer').html('');
+            }
           });
         });
+      }
+
+      $(function() {
+        loadUnreadEntries(parseInt(new Date() / 1000));
 
         $('#addModal').on('show', function () {
           $('#inputTitle').val('');
@@ -292,7 +303,6 @@
     <div class='container visible-desktop' id='padding-for-desktop'></div>
 
     <div class='container'>
-      <div id='header'></div>
       <div id='body'></div>
       <div id='footer'></div>
     </div>
