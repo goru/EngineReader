@@ -94,7 +94,7 @@
               var entry = json.entries[99];
               $('#footer').html('<div class="alert alert-info text-center" id="nextPage">Read more</div>');
               $('#nextPage').click(function () {
-                loadUnreadEntries(entry.pagingKey);
+                loadUnreadEntries(entry.pagingKey.toString());
               });
             } else {
               $('#footer').html('');
