@@ -92,9 +92,11 @@
 
             if (json.entries.length == 100) {
               var entry = json.entries[99];
-              $('#footer').html('<div class="alert alert-info text-center" id="nextPage">Read more</div>');
-              $('#nextPage').click(function () {
+              $('#footer').html('<div class="alert alert-info text-center">'
+                + '<a href="#" id="nextPage">Read more</a></div>');
+              $('#nextPage').click(function (event) {
                 loadUnreadEntries(entry.pagingKey.toString());
+                event.preventDefault();
               });
             } else {
               $('#footer').html('');
