@@ -93,8 +93,9 @@
             if (json.entries.length == 100) {
               var entry = json.entries[99];
               $('#footer').html('<div class="alert alert-info text-center">'
-                + '<a href="#" id="nextPage">Read more</a></div>');
-              $('#nextPage').click(function (event) {
+                + '<div class="container visible-desktop" id="readTrigger"></div>'
+                + '<a href="#" id="readMore">Read more</a></div>');
+              $('#readMore').click(function (event) {
                 loadUnreadEntries(entry.pagingKey.toString());
                 event.preventDefault();
               });
@@ -104,6 +105,18 @@
           });
         });
       }
+
+      $(window).scroll(function () {
+        var trigger = $('#readTrigger');
+        if (trigger.length == 0 || trigger.css('display') == 'none') {
+          return;
+        }
+
+        var windowBottom = $(window).scrollTop() + $(window).height();
+        if (windowBottom > trigger.offset().top) {
+          $('#readMore').click();
+        }
+      });
 
       $(function() {
         loadUnreadEntries(parseInt(new Date() / 1000));
