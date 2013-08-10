@@ -29,13 +29,20 @@
         button.children('i').toggleClass('icon-white');
       }
 
+      function openEntry(entry) {
+        var link = entry.attr('link');
+        var entryId = entry.attr('entry');
+
+        $('#wrap-' + entryId).click();
+        window.open(link);
+      }
+
       function createEntry(feeds, entry) {
             $('#body').append('<div class="entry-container" id="wrap-' + entry.id + '"></div>');
             var entryElement = $('#wrap-' + entry.id);
 
             entryElement.append('<div class="entry-header"><h4><a class="entry-link" id="title-' + entry.id
-              + '" href="' + entry.url + '" target="_blank" entry="'
-              + entry.id + '">' + entry.title + '</a></h4></div>');
+              + '" href="#" link="' + entry.url + '" entry="' + entry.id + '">' + entry.title + '</a></h4></div>');
 
             entryElement.append('<div class="entry-body">'
               + entry.description
@@ -63,9 +70,11 @@
             });
 
             $('#title-' + entry.id).mousedown(function(event) {
-              if (event.which == 2) { // middle button
-                  var entryId = $(this).attr('entry');
-                  $('#wrap-' + entryId).click();
+              if (event.which == 1 || event.which == 2) { // left or middle button
+                openEntry(this);
+                event.preventDefault();
+              } else {
+                return;
               }
             });
 
@@ -245,6 +254,8 @@
 
             break;
           case 86: // v, view entry
+            var link = $('.entry-container-selected .entry-link').eq(0);
+            openEntry(link);
             break;
           default:
             return true;
