@@ -3,7 +3,7 @@ EngineReader
 
 RSS Reader
 
-Working sample is [here](http://enginereader-test.appspot.com/index.html).
+Working sample is [here](http://enginereader-test.appspot.com/).
 
 How to execute EngineReader.
 ------------
