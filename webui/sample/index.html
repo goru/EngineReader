@@ -229,14 +229,15 @@
           if (entries.length == 100) {
             var entry = entries[entries.length - 1];
 
-            var alertBar = $('<div class="alert alert-info text-center" id="readMore">'
-              + '<div class="hidden-xs hidden-sm" id="readTrigger"></div>'
-              + '<a href="#">Read More</a></div>');
-            alertBar.click(function() {
+            var alertBar = $('<div class="alert alert-info text-center">'
+              + '<div class="hidden-xs hidden-sm" id="readTrigger"></div></div>');
+            var readMore = $('<a href="#" id="readMore">Read More</a>');
+            readMore.click(function(event) {
               loadEntries(entry.pagingKey.toString());
+              event.preventDefault();
             });
 
-            footer.empty().append(alertBar);
+            footer.empty().append(alertBar.append(readMore));
           } else {
             footer.empty();
           }
