@@ -139,6 +139,8 @@ class EntryReadUnreadHandler(HandlerBase):
         stat = True if action == 'read' else False
         models.FeedManager.setEntryStatus(entry, stat)
 
+        self.response.out.write(utils.dumpsJSON(entry.toDict()))
+
 application = webapp.WSGIApplication(
     [('/api/feeds/?', FeedsHandler),
      ('/api/feeds/(all|unread)/?', FeedsEntryHandler),
