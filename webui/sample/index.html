@@ -1,136 +1,133 @@
+<!-- vim: set expandtab tabstop=2 : -->
+
 <!DOCTYPE html>
 <html>
-
   <head>
-    <meta charset="utf-8">
-
     <title>EngineReader</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
-    <script src="http://code.jquery.com/jquery.js"></script>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="../../assets/js/html5shiv.js"></script>
+      <script src="../../assets/js/respond.min.js"></script>
+    <![endif]-->
+
+    <style type="text/css">
+      body { padding-top: 70px; }
+    </style>
+  </head>
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/"><span class="glyphicon glyphicon-home"></span> EngineReader</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a data-toggle="modal" href="#addModal">
+              <span class="glyphicon glyphicon-plus-sign"></span> Add</a></li>
+            <li><a data-toggle="modal" href="#importModal">
+              <span class="glyphicon glyphicon-upload"></span> Import</a></li>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div>
+    </nav>
+
+    <div class='container'>
+      <div id='body'></div>
+      <div id='footer'></div>
+    </div>
+
+    <div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Add New Feed</h4>
+          </div>
+          <div class="modal-body">
+            <form class="form-horizontal" role="form">
+              <div class="form-group">
+                <label for="inputTitle" class="col-lg-2 control-label">Title</label>
+                <div class="col-lg-10">
+                  <input type="text" class="form-control" id="inputTitle" placeholder="Title">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="inputURL" class="col-lg-2 control-label">URL</label>
+                <div class="col-lg-10">
+                  <input type="url" class="form-control" id="inputURL" placeholder="URL">
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button id="addModalButton" class="btn btn-primary" data-loading-text="Adding...">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: none">
+      <form id="importDummyForm" method="post" action="/api/feeds/import" enctype="multipart/form-data">
+        <input type="file" id="importDummyFile" name="opml">
+        <input id="importDummySubmit" type="submit">
+      </form>
+    </div>
+
+    <div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Import Feeds</h4>
+          </div>
+          <div class="modal-body">
+            <form class="form-horizontal" role="form">
+              <div class="form-group">
+                <label for="inputOPMLGroup" class="col-lg-2 control-label">OPML</label>
+                <div class="col-lg-10">
+                  <div class="input-group" id="inputOPMLGroup">
+                    <input type="text" class="form-control" id="inputOPML" placeholder="OPML File" disabled>
+                    <span class="input-group-btn">
+                      <button class="btn btn-default" type="button" id="inputOPMLButton">Select</button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button id="importModalButton" class="btn btn-primary" data-loading-text="Importing...">Import</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="//code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap.min.js"></script>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="css/bootstrap-responsive.css" rel="stylesheet">
-
     <script type="text/javascript">
-      function readUnreadButton(button) {
-        var feedId = button.attr('feed');
-        var entryId = button.attr('entry');
-        var state = button.hasClass('active');
-
-        if (state) {
-          $.post('/api/feeds/' + feedId + '/' + entryId + '/unread');
-        } else {
-          $.post('/api/feeds/' + feedId + '/' + entryId + '/read');
-        }
-
-        button.toggleClass('btn-primary');
-        button.children('i').toggleClass('icon-white');
-      }
-
-      function openEntry(entry) {
-        var link = entry.attr('link');
-        var entryId = entry.attr('entry');
-
-        $('#wrap-' + entryId).click();
-        window.open(link);
-      }
-
-      function createEntry(feeds, entry) {
-            $('#body').append('<div class="entry-container" id="wrap-' + entry.id + '"></div>');
-            var entryElement = $('#wrap-' + entry.id);
-
-            entryElement.append('<div class="entry-header"><h4><a class="entry-link" id="title-' + entry.id
-              + '" href="#" link="' + entry.url + '" entry="' + entry.id + '">' + entry.title + '</a></h4></div>');
-
-            entryElement.append('<div class="entry-body">'
-              + entry.description
-              + '<div class="text-right muted">'
-              + feeds[entry.feedId].title + '</div></div>');
-
-            entryElement.append('<div class="entry-footer">'
-              + '<button type="button" class="btn btn-primary entry-read-button" data-toggle="button" '
-              + 'id="button-'+ entry.id + '" feed="' + entry.feedId + '" entry="' + entry.id + '">'
-              + '<i class="icon-check icon-white"></i> Read</button>'
-              + '</div>');
-
-            entryElement.click(function() {
-              var current = getCurrentEntry();
-              if (current != null) {
-                current.removeClass('entry-container-selected');
-              }
-              $(this).addClass('entry-container-selected');
-
-              var button = $('.entry-container-selected .entry-read-button').eq(0);
-              if (!button.hasClass('active')) {
-                readUnreadButton(button);
-                button.button('toggle');
-              }
-            });
-
-            $('#title-' + entry.id).mousedown(function(event) {
-              if (event.which == 1 || event.which == 2) { // left or middle button
-                openEntry(this);
-                event.preventDefault();
-              } else {
-                return;
-              }
-            });
-
-            $('#button-' + entry.id).click(function() {
-              readUnreadButton($(this));
-            });
-      }
-
-      function loadUnreadEntries(pagingKey) {
-        $('#footer').html('<div class="alert alert-info text-center">Loading...</div>');
-
-        $.getJSON('/api/feeds/', function(json) {
-          var feeds = {};
-          for(var i in json.feeds) {
-            var feed = json.feeds[i];
-            feeds[feed.id] = feed;
-          }
-
-          $.getJSON('/api/feeds/unread/' + pagingKey, function(json) {
-            for(var i in json.entries) {
-              var entry = json.entries[i];
-              createEntry(feeds, entry);
-            }
-
-            if (json.entries.length == 100) {
-              var entry = json.entries[99];
-              $('#footer').html('<div class="alert alert-info text-center">'
-                + '<div class="container visible-desktop" id="readTrigger"></div>'
-                + '<a href="#" id="readMore">Read more</a></div>');
-              $('#readMore').click(function (event) {
-                loadUnreadEntries(entry.pagingKey.toString());
-                event.preventDefault();
-              });
-            } else {
-              $('#footer').html('');
-            }
-          });
-        });
-      }
-
-      $(window).scroll(function () {
-        var trigger = $('#readTrigger');
-        if (trigger.length == 0 || trigger.css('display') == 'none') {
-          return;
-        }
-
-        var windowBottom = $(window).scrollTop() + $(window).height();
-        if (windowBottom > trigger.offset().top) {
-          $('#readMore').click();
-        }
-      });
-
       $(function() {
-        loadUnreadEntries(parseInt(new Date() / 1000));
+        loadEntries(parseInt(new Date() / 1000));
 
-        $('#addModal').on('show', function () {
+        $('#addModal').on('show.bs.modal', function() {
           $('#inputTitle').val('');
           $('#inputURL').val('');
           $('#addModalButton').button('reset');
@@ -142,7 +139,7 @@
           var urlVal = $('#inputURL').val();
           var data = JSON.stringify({ "title": titleVal, "url": urlVal });
 
-          $.post('/api/feeds/', data, function(data) {
+          $.post('/api/feeds/', data).done(function(data) {
             window.location = '/';
           }).fail(function () {
           }).always(function () {
@@ -150,9 +147,9 @@
           });
         });
 
-        $('#importModal').on('show', function () {
+        $('#importModal').on('show.bs.modal', function () {
           $('#importDummyFile').val('');
-          $('#inputOPML').html('OPML File');
+          $('#inputOPML').val('');
           $('#importModalButton').button('reset');
         });
 
@@ -161,7 +158,7 @@
         });
 
         $('#importDummyFile').change(function () {
-          $('#inputOPML').html($(this).val());
+          $('#inputOPML').val($(this).val());
         });
 
         $('#importModalButton').click(function() {
@@ -186,43 +183,155 @@
             }
           });
         });
+
+        $(window).scroll(function () {
+          var trigger = $('#readTrigger');
+          if (trigger.length == 0 || trigger.css('display') == 'none') {
+            return;
+          }
+
+          var windowBottom = $(window).scrollTop() + $(window).height();
+          if (windowBottom > trigger.offset().top) {
+            $('#readMore').click();
+          }
+        });
       });
 
-      function getCurrentEntry() {
-        var elm = $('.entry-container-selected');
-        if (elm.length != 0) {
-          return elm.eq(0);
-        } else {
-          return null;
+      function loadEntries(pagingKey) {
+        var footer = $('#footer');
+        footer.html('<div class="alert alert-info text-center">Loading...</div>');
+
+        var def = new $.Deferred();
+
+        $.getJSON('/api/feeds/').done(function(json) {
+          var feeds = {};
+          for(var i in json.feeds) {
+            var feed = json.feeds[i];
+            feeds[feed.id] = feed;
+          }
+
+          $.getJSON('/api/feeds/unread/' + pagingKey).done(function(json) {
+            for(var i in json.entries) {
+              var entry = json.entries[i];
+              var feed = feeds[entry.feedId];
+              createEntry(feed, entry);
+            }
+
+            def.resolve(json.entries);
+          }).fail(function() {
+            def.reject();
+          });
+        }).fail(function() {
+          def.reject();
+        });
+
+        def.done(function(entries) {
+          if (entries.length == 100) {
+            var entry = entries[entries.length - 1];
+
+            var alertBar = $('<div class="alert alert-info text-center" id="readMore">'
+              + '<div class="hidden-xs hidden-sm" id="readTrigger"></div>'
+              + '<a href="#">Read More</a></div>');
+            alertBar.click(function() {
+              loadEntries(entry.pagingKey.toString());
+            });
+
+            footer.empty().append(alertBar);
+          } else {
+            footer.empty();
+          }
+        }).fail(function() {
+          footer.html('<div class="alert alert-danger text-center">Failed to load entries</div>');
+        });
+      }
+
+      function createEntry(feed, entry) {
+        var panel = $('<div class="panel panel-default" '
+          + 'feed="' + entry.feedId + '" '
+          + 'entry="' + entry.id + '" />');
+
+        var heading = $('<div class="panel-heading">'
+          + '<h3 class="panel-title">'
+          + '<a href="' + entry.url + '" target="_blank">' + entry.title + '</a></h3></div>');
+        var body = $('<div class="panel-body">' + entry.description
+          + '<div class="text-right text-muted">' + feed.title + '</div></div>');
+        var footer = $('<div class="panel-footer text-right" />');
+
+        var readBtn = $('<button type="button" class="btn btn-primary btn-sm read-btn">'
+          + '<span class="glyphicon glyphicon-unchecked"></span> <span class="text">Read</span>'
+          + '</button>');
+
+        panel.append(heading)
+          .append(body)
+          .append(footer.append(readBtn))
+          .appendTo('#body');
+
+        panel.click(function() {
+          changePanel($(this), false);
+        });
+
+        readBtn.click(function(event) {
+          var panel = $(this).parents('div.panel');
+          selectPanel(panel);
+
+          clickReadButton(panel, $(this));
+
+          event.stopPropagation();
+        });
+      }
+
+      function selectPanel(panel) {
+        if (!panel.hasClass('panel-primary')) {
+          $('div.panel-primary', $('#body')).removeClass('panel-primary')
+            .addClass('panel-default');
+          panel.removeClass('panel-default')
+            .addClass('panel-primary');
         }
       }
 
-      function changeSelectedEntry(entries, current, index) {
-        if (current != null) {
-          current.removeClass('entry-container-selected');
-        }
+      function clickReadButton(panel, button) {
+        var feedId = panel.attr('feed');
+        var entryId = panel.attr('entry');
 
-        var next = entries.eq(index);
-        next.addClass('entry-container-selected');
-
-        var pos = next.offset().top;
-        $('html,body').animate({ scrollTop: pos - 50 }, 100); // http://api.jquery.com/animate/
-
-        var button = $('.entry-container-selected .entry-read-button').eq(0);
+        var url = '/api/feeds/' + feedId + '/' + entryId;
         if (!button.hasClass('active')) {
-          readUnreadButton(button);
+          url = url + '/read';
+        } else {
+          url = url + '/unread';
+        }
+
+        $.post(url).done(function() {
           button.button('toggle');
+
+          $('span.glyphicon', button).toggleClass('glyphicon-unchecked')
+            .toggleClass('glyphicon-check');
+        }).fail(function() {
+        });
+      }
+
+      function changePanel(panel, animate) {
+        selectPanel(panel);
+
+        var readBtn = $('button.read-btn', panel);
+        if (!readBtn.hasClass('active')) {
+          clickReadButton(panel, readBtn);
+        }
+
+        if (animate) {
+          var pos = panel.offset().top;
+          $('html,body').animate({ scrollTop: pos - 70 }, 100); // http://api.jquery.com/animate/
         }
       }
+
 
       // hook keyboard input
-      $(window).keydown(function (event) {
+      $(window).keydown(function(event) {
         if (event.shiftKey || event.ctrlKey) {
-          return true;
+          return;
         }
 
-        var entries = $('.entry-container');
-        var current = getCurrentEntry();
+        var entries = $('div.panel', $('#body'));
+        var current = $('div.panel-primary', $('#body'));
 
         switch(event.keyCode) {
           case 74: // j, next entry
@@ -232,7 +341,7 @@
             }
 
             if (entries.length > index) {
-              changeSelectedEntry(entries, current, index);
+              changePanel(entries.eq(index), true);
             }
 
             break;
@@ -243,159 +352,27 @@
             }
 
             if (index >= 0) {
-              changeSelectedEntry(entries, current, index);
+              changePanel(entries.eq(index), true);
             }
 
             break;
           case 77: // m, toggle read,unread
-            var button = $('.entry-container-selected .entry-read-button').eq(0);
-            readUnreadButton(button);
-            button.button('toggle');
+            var readBtn = $('button.read-btn', current);
+            readBtn.click();
 
             break;
           case 86: // v, view entry
-            var link = $('.entry-container-selected .entry-link').eq(0);
-            openEntry(link);
+            var a = $('a', $('div.panel-heading', current));
+            var url = a.attr('href');
+            window.open(url, '_blank');
+
             break;
           default:
-            return true;
+            return;
         }
 
         event.preventDefault();
-        return true;
       });
     </script>
-
-    <style type="text/css">
-      body {
-        background-color: rgb(245, 245, 245);
-      }
-
-      #padding-for-desktop {
-        padding-top: 50px
-      }
-
-      .hidden-container {
-        display: none;
-      }
-
-      .entry-container {
-        border: 1px solid rgba(0, 0, 0, 0.3);
-        border-radius: 6px 6px 6px 6px;
-        margin: 0px 0px 10px 0px;
-        background-color: rgb(255, 255, 255);
-      }
-
-      .entry-container-selected {
-        border: 1px solid rgba(82, 168, 236, 0.8);
-      }
-
-      .entry-header {
-        padding: 5px 10px;
-        border-bottom: 1px solid rgb(238, 238, 238);
-      }
-
-      .entry-body {
-        padding: 10px;
-      }
-
-      .entry-footer {
-        padding: 10px;
-        margin-bottom: 0px;
-        text-align: right;
-        background-color: rgb(245, 245, 245);
-        border-top: 1px solid rgb(221, 221, 221);
-        border-radius: 0px 0px 6px 6px;
-      }
-    </style>
-
-  </head>
-
-  <body>
-    <div class="navbar navbar-fixed-top navbar-inverse">
-      <div class="navbar-inner">
-        <div class='container'>
-          <ul class="nav">
-            <li class="active"><a href="/"><i class="icon-home icon-white"></i> Home</a></li>
-          </ul>
-          <ul class="nav pull-right">
-            <li><a href="#addModal" data-toggle="modal"><i class="icon-plus-sign icon-white"></i> Add</a></li>
-            <li><a href="#importModal" data-toggle="modal"><i class="icon-upload icon-white"></i> Import</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <div class='container visible-desktop' id='padding-for-desktop'></div>
-
-    <div class='container'>
-      <div id='body'></div>
-      <div id='footer'></div>
-    </div>
-
-    <div id='hidden-elements'>
-      <div id="addModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-          <h3 id="addModalLabel">Add New Feed</h3>
-          </div>
-          <div class="modal-body">
-
-            <form class="form-horizontal">
-              <div class="control-group">
-                <label class="control-label" for="inputTitle">Title</label>
-                <div class="controls">
-                  <input class="input-large" id='inputTitle' type="text" placeholder="Title">
-                </div>
-              </div>
-              <div class="control-group">
-                <label class="control-label" for="inputURL">URL</label>
-                <div class="controls">
-                  <input class="input-large" id='inputURL' type="text" placeholder="URL">
-                </div>
-              </div>
-            </form>
-
-          </div>
-          <div class="modal-footer">
-          <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-          <button id='addModalButton' class="btn btn-primary" data-loading-text="Adding...">Add</button>
-        </div>
-      </div>
-
-      <div class='hidden-container'>
-        <form id='importDummyForm' method='post' action='/api/feeds/import' enctype='multipart/form-data'>
-          <input type="file" id="importDummyFile" name="opml">
-          <input id="importDummySubmit" type="submit">
-        </form>
-      </div>
-
-      <div id="importModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-          <h3 id="importModalLabel">Import Feeds</h3>
-          </div>
-          <div class="modal-body">
-
-            <form class="form-horizontal">
-              <div class="control-group">
-                <label class="control-label" for="inputOPMLContainer">OPML File</label>
-                <div class="controls">
-                  <div class='input-append' id='inputOPMLContainer'>
-                    <span class="input-large uneditable-input" id='inputOPML' type="text">OPML File</span>
-                    <button class="btn" type="button" id='inputOPMLButton'>Select</button>
-                  </div>
-                </div>
-              </div>
-            </form>
-
-          </div>
-          <div class="modal-footer">
-          <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-          <button id='importModalButton' class="btn btn-primary" data-loading-text="Importing...">Import</button>
-        </div>
-      </div>
-    </div>
   </body>
-
 </html>
