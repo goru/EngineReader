@@ -100,7 +100,11 @@ class ModelBase(db.Model):
 
         for key in keys:
             if getattr(self, key) != dic[key]:
-                setattr(self, key, dic[key])
+                if key == 'title':
+                    value = dic[key].replace('\n', '').replace('\r', '')
+                else:
+                    value = dic[key]
+                setattr(self, key, value)
                 updateRequired = True
 
         return updateRequired
