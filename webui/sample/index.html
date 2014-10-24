@@ -331,6 +331,10 @@
           return;
         }
 
+        if ($('#addModal').hasClass('in') || $('#importModal').hasClass('in')) {
+          return;
+        }
+
         var entries = $('div.panel', $('#body'));
         var current = $('div.panel-primary', $('#body'));
 
