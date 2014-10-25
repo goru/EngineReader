@@ -103,6 +103,23 @@ class FeedHandler(HandlerBase):
 
         self.response.out.write(utils.dumpsJSON(feed.toDict()))
 
+    def delete(self, feedId):
+        self.response.headers['Content-Type'] = 'application/json'
+
+        feed = models.FeedManager.getFeedById(feedId)
+        if not feed:
+            self.writeNotFound()
+            return
+
+        feeds = models.FeedManager.getAllEntriesByFeed(feed)
+        if not feeds:
+            self.writeNotFound()
+            return
+
+        db.delete(feeds)
+        feed.delete()
+
+
 class FeedEntryHandler(HandlerBase):
     def get(self, feedId, action, pagingKey=None):
         self.response.headers['Content-Type'] = 'application/json'
