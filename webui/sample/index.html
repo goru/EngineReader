@@ -16,6 +16,9 @@
 
     <style type="text/css">
       body { padding-top: 70px; }
+      table { table-layout: fixed; }
+      td.break-word { word-wrap:break-word; }
+      td.floating-item { width: 40px; }
     </style>
   </head>
   <body>
@@ -394,9 +397,9 @@
             buttonId = "deleteFeedButton" + feed;
             buttons.push("#" + buttonId);
 
-            list += '<tr><td><span class="glyphicon glyphicon-file"></span>';
+            list += '<tr><td class="break-word"><span class="glyphicon glyphicon-file"></span>';
             list += feeds[feed].title;
-            list += '</td><td class="text-right"><button id="'
+            list += '</td><td class="text-right floating-item"><button id="'
             list += buttonId;
             list += '" data-id="';
             list += feeds[feed].id;
