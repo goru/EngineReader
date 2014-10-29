@@ -16,6 +16,9 @@
 
     <style type="text/css">
       body { padding-top: 70px; }
+      table { table-layout: fixed; }
+      td.break-word { word-wrap:break-word; }
+      td.floating-item { width: 40px; }
     </style>
   </head>
   <body>
@@ -38,6 +41,8 @@
           <ul class="nav navbar-nav navbar-right">
             <li><a data-toggle="modal" href="#addModal">
               <span class="glyphicon glyphicon-plus-sign"></span> Add</a></li>
+            <li><a data-toggle="modal" href="#listModal">
+              <span class="glyphicon glyphicon-th-list"></span> List</a></li>
             <li><a data-toggle="modal" href="#importModal">
               <span class="glyphicon glyphicon-upload"></span> Import</a></li>
           </ul>
@@ -76,6 +81,22 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
             <button id="addModalButton" class="btn btn-primary" data-loading-text="Adding...">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="listModal" tabindex="-1" role="dialog" aria-labelledby="listModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">RSS Feed List</h4>
+          </div>
+          <div class="modal-body">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
           </div>
         </div>
       </div>
@@ -125,6 +146,7 @@
 
     <script type="text/javascript">
       $(function() {
+        $('#body').empty();
         loadEntries(parseInt(new Date() / 1000));
 
         $('#addModal').on('show.bs.modal', function() {
@@ -151,6 +173,16 @@
           $('#importDummyFile').val('');
           $('#inputOPML').val('');
           $('#importModalButton').button('reset');
+        });
+
+        $('#listModal').on('show.bs.modal', function () {
+          loadFeedsList();
+          $('#listModalButton').button('reset');
+        });
+
+        $('#listModal').on('hidden.bs.modal', function () {
+          $('#body').empty();
+          loadEntries(parseInt(new Date() / 1000));
         });
 
         $('#inputOPMLButton').click(function () {
@@ -210,6 +242,13 @@
             feeds[feed.id] = feed;
           }
 
+          if (Object.keys(feeds).length === 0) {
+            footer.empty();
+            var body = '<div class="alert alert-warning text-center">There is no RSS feed. Please add RSS feed from "Add" menu.</div>';
+            $('#body').html(body);
+            return;
+          }
+
           $.getJSON('/api/feeds/unread/' + pagingKey).done(function(json) {
             for(var i in json.entries) {
               var entry = json.entries[i];
@@ -239,6 +278,10 @@
 
             footer.empty().append(alertBar.append(readMore));
           } else {
+            if (entries.length === 0) {
+              var body = '<div class="alert alert-info text-center">There is no unread RSS entry</div>';
+              $('#body').html(body);
+            }
             footer.empty();
           }
         }).fail(function() {
@@ -324,6 +367,68 @@
         }
       }
 
+      function loadFeedsList() {
+        var def = new $.Deferred();
+        var body = $('#listModal').find('.modal-body');
+
+        body.empty();
+
+        $.getJSON('/api/feeds/?').done(function(json) {
+          var feeds = {};
+          for(var i in json.feeds) {
+            var feed = json.feeds[i];
+            feeds[feed.id] = feed;
+          }
+          def.resolve(feeds);
+        }).fail(function() {
+          def.reject();
+        });
+
+        def.done(function(feeds) {
+          if (Object.keys(feeds).length === 0) {
+            body.html('<div class="alert alert-warning text-center">There is no RSS feed</div>');
+            return;
+          }
+
+          list = '<div class="panel panel-default"><table class="table table-hover"><tbody>';
+
+          buttons = [];
+          for (feed in feeds) {
+            buttonId = "deleteFeedButton" + feed;
+            buttons.push("#" + buttonId);
+
+            list += '<tr><td class="break-word"><span class="glyphicon glyphicon-file"></span>';
+            list += feeds[feed].title;
+            list += '</td><td class="text-right floating-item"><button id="'
+            list += buttonId;
+            list += '" data-id="';
+            list += feeds[feed].id;
+            list += '" class="btn btn-xs btn-warning"><span class="glyphicon glyphicon-trash"></span></button></td></tr>';
+          }
+          list += '</tbody></table></div>';
+          body.html(list);
+
+          for (button in buttons) {
+            $(buttons[button]).click(function() {
+              deleteFeedById($(this).data('id'));
+            });
+          }
+        }).fail(function() {
+          body.html('<div class="alert alert-danger text-center">Failed to load feeds</div>');
+        });
+      }
+
+      function deleteFeedById(feedId) {
+        $.delete('/api/feeds/' + feedId + '/?').done(function(data) {
+        }).fail(function () {
+        }).always(function () {
+          $('#deleteFeedButton').button('reset');
+          // Wait some time to reflect data changes
+          $(this).delay(1000).queue(function() {
+            loadFeedsList();
+          });
+        });
+      }
 
       // hook keyboard input
       $(window).keydown(function(event) {
@@ -377,6 +482,23 @@
         }
 
         event.preventDefault();
+      });
+
+      jQuery.each(["put", "delete"], function(i, method) {
+        jQuery[method] = function(url, data, callback, type) {
+          if (jQuery.isFunction(data)) {
+            type = type || callback;
+            callback = data;
+            data = undefined;
+          }
+          return jQuery.ajax({
+            type: method,
+            url: url,
+            data: data,
+            success: callback,
+            dataType: type
+          });
+        };
       });
     </script>
   </body>

@@ -32,6 +32,10 @@ class FeedManager(object):
         return EntryModel.gql('WHERE pagingKey < :1 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey))
 
     @classmethod
+    def getAllEntriesByFeed(cls, feed):
+        return EntryModel.gql('WHERE ANCESTOR IS :1', feed)
+
+    @classmethod
     def getUnreadEntries(cls, pagingKey):
         return EntryModel.gql('WHERE pagingKey < :1 AND read = :2 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey), False)
 
