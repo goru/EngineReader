@@ -25,7 +25,7 @@ Clone source files from github.
 `$ git clone https://github.com/lostman-github/EngineReader.git`
 
 Edit application name for AppEngine.  
-The value of application must be changed of AppEngine.  
+The value of application must be changed to your application name of AppEngine.  
 `$ vi EngineReader/app.yaml`
 
 Deploy to AppEngine.  
@@ -33,3 +33,13 @@ Deploy to AppEngine.
 
 Connect to application using WebBrowser.  
 `http://<your applicetion name>.appspot.com/`
+
+About version number.
+------------
+```
+v0.1.0
+ | | |
+ | | + -- bug fixes
+ | + ---- new feature
+ + ------ something big changes
+```
