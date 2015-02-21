@@ -151,7 +151,7 @@ application = webapp.WSGIApplication(
      ('/api/feeds/(\d+)/(all|unread)/?', FeedEntryHandler),
      ('/api/feeds/(\d+)/(all|unread)/([0-9.]+)/?', FeedEntryHandler),
      ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler)],
-    debug=True)
+    debug=False)
 
 def main():
     run_wsgi_app(application)
