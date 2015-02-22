@@ -4,6 +4,7 @@
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
+from google.appengine.api import taskqueue
 
 import time
 
@@ -107,13 +108,12 @@ class FeedHandler(HandlerBase):
             self.writeNotFoundResponse()
             return
 
-        feeds = models.FeedManager.getAllEntriesByFeed(feed)
-        if not feeds:
-            self.writeNotFoundResponse()
-            return
-
-        db.delete(feeds)
-            feed.delete()
+        entries = models.FeedManager.getAllEntriesByFeed(feed)
+        queue = taskqueue.Queue()
+        for entry in entries:
+            entryUrl = '/api/feeds/' + feedId + '/' + entry.key().name()
+            task = taskqueue.Task(method='DELETE', url=entryUrl)
+            queue.add(task)
 
         self.writeNoContentResponse()
 
@@ -149,12 +149,21 @@ class EntryHandler(HandlerBase):
         self.writeJsonResponse(entry.toDict())
 
     def delete(self, feedId, entryId):
+        feed = models.FeedManager.getFeedById(feedId)
+        if not feed:
+            self.writeNotFoundResponse()
+            return
+
         entry = models.FeedManager.getEntryById(feedId, entryId)
         if not entry:
             self.writeNotFoundResponse()
             return
 
         entry.delete()
+
+        entries = models.FeedManager.getAllEntriesByFeed(feed)
+        if entries.count() == 0:
+            feed.delete()
 
         self.writeNoContentResponse()
 
