@@ -11,32 +11,38 @@ from api import utils
 from api.feeds import models, parsers
 
 class HandlerBase(webapp.RequestHandler):
-    def writeNotFound(self):
-        self.error(404)
+    def writeJsonResponse(self, obj):
+        self.response.clear()
+        self.response.set_status(200)
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.out.write(utils.dumpsJSON(obj))
+
+    def writeNoContentResponse(self):
+        self.response.clear()
+        self.response.set_status(204)
+
+    def writeNotFoundResponse(self):
+        self.response.clear()
+        self.response.set_status(404)
+        self.response.headers['Content-Type'] = 'application/json'
         self.response.out.write(utils.dumpsJSON({}))
 
 class FeedsHandler(HandlerBase):
     def get(self):
-        self.response.headers['Content-Type'] = 'application/json'
-
         feeds = []
         for feed in models.FeedManager.getFeeds():
             feeds.append(feed.toDict())
 
-        self.response.out.write(utils.dumpsJSON({'feeds': feeds}))
+        self.writeJsonResponse({'feeds': feeds})
 
     def post(self):
-        self.response.headers['Content-Type'] = 'application/json'
-
         dic = utils.loadsJSON(utils.decodeByteString(self.request.body))
         feed = models.FeedManager.createFeed(dic)
 
-        self.response.out.write(utils.dumpsJSON(feed.toDict()))
+        self.writeJsonResponse(feed.toDict())
 
 class FeedsEntryHandler(HandlerBase):
     def get(self, action, pagingKey=None):
-        self.response.headers['Content-Type'] = 'application/json'
-
         if not pagingKey:
             pagingKey = utils.currentUnix()
 
@@ -50,12 +56,10 @@ class FeedsEntryHandler(HandlerBase):
         for entry in queryResult:
             entries.append(entry.toDict())
 
-        self.response.out.write(utils.dumpsJSON({'entries': entries}))
+        self.writeJsonResponse({'entries': entries})
 
 class FeedImportHandler(HandlerBase):
     def post(self):
-        self.response.headers['Content-Type'] = 'application/json'
-
         fileBody = self.request.get('opml')
         dom = utils.parseXmlString(utils.decodeByteString(fileBody))
         opml = parsers.OpmlParser.create(dom)
@@ -65,68 +69,59 @@ class FeedImportHandler(HandlerBase):
             feed = models.FeedManager.createFeed(feedDict)
             feeds.append(feed.toDict())
 
-        self.response.out.write(utils.dumpsJSON({'feeds': feeds}))
+        self.writeJsonResponse({'feeds': feeds})
 
 class FeedUpdateHandler(HandlerBase):
     def get(self):
-        self.response.headers['Content-Type'] = 'application/json'
-
         feeds = []
         for feed in models.FeedManager.getFeeds():
             models.FeedManager.updateEntries(feed)
             feeds.append(feed.toDict())
 
-        self.response.out.write(utils.dumpsJSON({'feeds': feeds}))
+        self.writeJsonResponse({'feeds': feeds})
 
 class FeedHandler(HandlerBase):
     def get(self, feedId):
-        self.response.headers['Content-Type'] = 'application/json'
-
         feed = models.FeedManager.getFeedById(feedId)
         if not feed:
-            self.writeNotFound()
+            self.writeNotFoundResponse()
             return
 
-        self.response.out.write(utils.dumpsJSON(feed.toDict()))
+        self.writeJsonResponse(feed.toDict())
 
     def post(self, feedId):
-        self.response.headers['Content-Type'] = 'application/json'
-
         feed = models.FeedManager.getFeedById(feedId)
         if not feed:
-            self.writeNotFound()
+            self.writeNotFoundResponse()
             return
 
         feedDict = utils.loadsJSON(utils.decodeByteString(self.request.body))
         if feed.fromDict(feedDict):
             feed.put()
 
-        self.response.out.write(utils.dumpsJSON(feed.toDict()))
+        self.writeJsonResponse(feed.toDict())
 
     def delete(self, feedId):
-        self.response.headers['Content-Type'] = 'application/json'
-
         feed = models.FeedManager.getFeedById(feedId)
         if not feed:
-            self.writeNotFound()
+            self.writeNotFoundResponse()
             return
 
         feeds = models.FeedManager.getAllEntriesByFeed(feed)
         if not feeds:
-            self.writeNotFound()
+            self.writeNotFoundResponse()
             return
 
         db.delete(feeds)
         feed.delete()
 
+        self.writeNoContentResponse()
 
 class FeedEntryHandler(HandlerBase):
     def get(self, feedId, action, pagingKey=None):
-        self.response.headers['Content-Type'] = 'application/json'
-
         feed = models.FeedManager.getFeedById(feedId)
         if not feed:
-            self.writeNotFound()
+            self.writeNotFoundResponse()
             return
 
         if not pagingKey:
@@ -142,21 +137,19 @@ class FeedEntryHandler(HandlerBase):
         for entry in entryQuery:
             entries.append(entry.toDict())
 
-        self.response.out.write(utils.dumpsJSON({'entries': entries}))
+        self.writeJsonResponse({'entries': entries})
 
 class EntryReadUnreadHandler(HandlerBase):
     def post(self, feedId, entryId, action):
-        self.response.headers['Content-Type'] = 'application/json'
-
         entry = models.FeedManager.getEntryById(feedId, entryId)
         if not entry:
-            self.writeNotFound()
+            self.writeNotFoundResponse()
             return
 
         stat = True if action == 'read' else False
         models.FeedManager.setEntryStatus(entry, stat)
 
-        self.response.out.write(utils.dumpsJSON(entry.toDict()))
+        self.writeJsonResponse(entry.toDict())
 
 application = webapp.WSGIApplication(
     [('/api/feeds/?', FeedsHandler),
