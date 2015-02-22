@@ -113,7 +113,7 @@ class FeedHandler(HandlerBase):
             return
 
         db.delete(feeds)
-        feed.delete()
+            feed.delete()
 
         self.writeNoContentResponse()
 
@@ -139,6 +139,25 @@ class FeedEntryHandler(HandlerBase):
 
         self.writeJsonResponse({'entries': entries})
 
+class EntryHandler(HandlerBase):
+    def get(self, feedId, entryId):
+        entry = models.FeedManager.getEntryById(feedId, entryId)
+        if not entry:
+            self.writeNotFoundResponse()
+            return
+
+        self.writeJsonResponse(entry.toDict())
+
+    def delete(self, feedId, entryId):
+        entry = models.FeedManager.getEntryById(feedId, entryId)
+        if not entry:
+            self.writeNotFoundResponse()
+            return
+
+        entry.delete()
+
+        self.writeNoContentResponse()
+
 class EntryReadUnreadHandler(HandlerBase):
     def post(self, feedId, entryId, action):
         entry = models.FeedManager.getEntryById(feedId, entryId)
@@ -160,6 +179,7 @@ application = webapp.WSGIApplication(
      ('/api/feeds/(\d+)/?', FeedHandler),
      ('/api/feeds/(\d+)/(all|unread)/?', FeedEntryHandler),
      ('/api/feeds/(\d+)/(all|unread)/([0-9.]+)/?', FeedEntryHandler),
+     ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/?', EntryHandler),
      ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler)],
     debug=True)
 
