@@ -109,7 +109,7 @@ class FeedHandler(HandlerBase):
             return
 
         entries = models.FeedManager.getAllEntriesByFeed(feed)
-        queue = taskqueue.Queue()
+        queue = taskqueue.Queue('low-priority-task')
         for entry in entries:
             entryUrl = '/api/feeds/' + feedId + '/' + entry.key().name()
             task = taskqueue.Task(method='DELETE', url=entryUrl)
