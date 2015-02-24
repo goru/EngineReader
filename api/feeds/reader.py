@@ -115,6 +115,8 @@ class FeedHandler(HandlerBase):
             task = taskqueue.Task(method='DELETE', url=entryUrl)
             queue.add(task)
 
+        feed.delete()
+
         self.writeNoContentResponse()
 
 class FeedEntryHandler(HandlerBase):
@@ -140,36 +142,27 @@ class FeedEntryHandler(HandlerBase):
         self.writeJsonResponse({'entries': entries})
 
 class EntryHandler(HandlerBase):
-    def get(self, feedId, entryId):
-        entry = models.FeedManager.getEntryById(feedId, entryId)
+    def get(self, entryId):
+        entry = models.FeedManager.getEntryById(entryId)
         if not entry:
             self.writeNotFoundResponse()
             return
 
         self.writeJsonResponse(entry.toDict())
 
-    def delete(self, feedId, entryId):
-        feed = models.FeedManager.getFeedById(feedId)
-        if not feed:
-            self.writeNotFoundResponse()
-            return
-
-        entry = models.FeedManager.getEntryById(feedId, entryId)
+    def delete(self, entryId):
+        entry = models.FeedManager.getEntryById(entryId)
         if not entry:
             self.writeNotFoundResponse()
             return
 
         entry.delete()
 
-        entries = models.FeedManager.getAllEntriesByFeed(feed)
-        if entries.count() == 0:
-            feed.delete()
-
         self.writeNoContentResponse()
 
 class EntryReadUnreadHandler(HandlerBase):
-    def post(self, feedId, entryId, action):
-        entry = models.FeedManager.getEntryById(feedId, entryId)
+    def post(self, entryId, action):
+        entry = models.FeedManager.getEntryById(entryId)
         if not entry:
             self.writeNotFoundResponse()
             return
@@ -188,8 +181,8 @@ application = webapp.WSGIApplication(
      ('/api/feeds/(\d+)/?', FeedHandler),
      ('/api/feeds/(\d+)/(all|unread)/?', FeedEntryHandler),
      ('/api/feeds/(\d+)/(all|unread)/([0-9.]+)/?', FeedEntryHandler),
-     ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/?', EntryHandler),
-     ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler)],
+     ('/api/feeds/\d+/(entry-[a-z0-9]+)/?', EntryHandler),
+     ('/api/feeds/\d+/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler)],
     debug=True)
 
 def main():

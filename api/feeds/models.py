@@ -21,7 +21,7 @@ class FeedManager(object):
 
     @classmethod
     def getFeeds(cls):
-        return FeedModel.all()
+        return FeedModel.all().run()
 
     @classmethod
     def getFeedById(cls, feedId):
@@ -29,31 +29,27 @@ class FeedManager(object):
 
     @classmethod
     def getEntries(cls, pagingKey):
-        return EntryModel.gql('WHERE pagingKey < :1 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey))
+        return EntryModel.all().filter('pagingKey <', float(pagingKey)).order('-pagingKey').run(limit=100)
 
     @classmethod
     def getAllEntriesByFeed(cls, feed):
-        return EntryModel.gql('WHERE ANCESTOR IS :1', feed)
+        return feed.entrymodel_set.order('-pagingKey').run()
 
     @classmethod
     def getUnreadEntries(cls, pagingKey):
-        return EntryModel.gql('WHERE pagingKey < :1 AND read = :2 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey), False)
+        return EntryModel.all().filter('pagingKey <', float(pagingKey)).filter('read = ', False).order('-pagingKey').run(limit=100)
 
     @classmethod
     def getEntriesByFeed(cls, feed, pagingKey):
-        return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey))
+        return feed.entrymodel_set.filter('pagingKey <', float(pagingKey)).order('-pagingKey').run(limit=100)
 
     @classmethod
     def getUnreadEntriesByFeed(cls, feed, pagingKey):
-        return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 AND read = :3 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey), False)
+        return feed.entrymodel_set.filter('pagingKey <', float(pagingKey)).filter('read = ', False).order('-pagingKey').run(limit=100)
 
     @classmethod
-    def getEntryById(cls, feedId, entryId):
-        feed = cls.getFeedById(feedId)
-        if not feed:
-            return None
-
-        return EntryModel.get_by_key_name(entryId, parent=feed)
+    def getEntryById(cls, entryId):
+        return EntryModel.get_by_key_name(entryId)
 
     @classmethod
     def setEntryStatus(cls, entry, status):
@@ -79,9 +75,9 @@ class FeedManager(object):
         for entryDict in parser.entries():
             key = entryDict['key']
 
-            entry = EntryModel.get_by_key_name(key, parent=feed)
+            entry = EntryModel.get_by_key_name(key)
             if not entry:
-                entry = EntryModel(parent=feed, key_name=key)
+                entry = EntryModel(key_name=key)
                 entry.feed = feed
 
                 feed.total += 1

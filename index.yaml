@@ -12,18 +12,18 @@ indexes:
 
 - kind: EntryModel
   properties:
+  - name: feed
+  - name: pagingKey
+    direction: desc
+
+- kind: EntryModel
+  properties:
+  - name: feed
   - name: read
   - name: pagingKey
     direction: desc
 
 - kind: EntryModel
-  ancestor: yes
-  properties:
-  - name: pagingKey
-    direction: desc
-
-- kind: EntryModel
-  ancestor: yes
   properties:
   - name: read
   - name: pagingKey
