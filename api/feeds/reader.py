@@ -15,7 +15,7 @@ class HandlerBase(webapp.RequestHandler):
         self.response.clear()
         self.response.set_status(200)
         self.response.headers['Content-Type'] = 'application/json'
-        self.response.out.write(utils.dumpsJSON(obj))
+        self.response.out.write(utils.dumpsJSON(obj) + '\n')
 
     def writeNoContentResponse(self):
         self.response.clear()
@@ -25,7 +25,7 @@ class HandlerBase(webapp.RequestHandler):
         self.response.clear()
         self.response.set_status(404)
         self.response.headers['Content-Type'] = 'application/json'
-        self.response.out.write(utils.dumpsJSON({}))
+        self.response.out.write(utils.dumpsJSON({}) + '\n')
 
 class FeedsHandler(HandlerBase):
     def get(self):
