@@ -183,13 +183,16 @@ class MigrationStatusHandler(HandlerBase):
         self.writeJsonResponse({'feeds': feeds})
 
 class MigrationExecuteHandler(HandlerBase):
-    def get(self):
+    def get(self, feedId):
+        feed = models.FeedManager.getFeedById(feedId)
+        if not feed:
+            self.writeNoContentResponse()
+
         queue = taskqueue.Queue('low-priority-task')
-        for feed in models.FeedManager.getFeeds():
-            for entry in models.FeedManager.getOldStyleEntries(feed):
-                entryUrl = '/api/feeds/v0.2.0/migration/execute/' + str(feed.key().id()) + '/' + entry.key().name()
-                task = taskqueue.Task(url=entryUrl)
-                queue.add(task)
+        for entry in models.FeedManager.getOldStyleEntries(feed):
+            entryUrl = '/api/feeds/v0.2.0/migration/execute/' + feedId + '/' + entry.key().name()
+            task = taskqueue.Task(url=entryUrl)
+            queue.add(task)
 
         self.writeNoContentResponse()
 
@@ -213,7 +216,7 @@ application = webapp.WSGIApplication([
     ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/?', EntryHandler),
     ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler),
     ('/api/feeds/v0.2.0/migration/status', MigrationStatusHandler),
-    ('/api/feeds/v0.2.0/migration/execute', MigrationExecuteHandler),
+    ('/api/feeds/v0.2.0/migration/execute/(\d+)/?', MigrationExecuteHandler),
     ('/api/feeds/v0.2.0/migration/execute/(\d+)/(entry-[a-z0-9]+)/?', MigrationExecuteHandler)
     ], debug=True)
 
