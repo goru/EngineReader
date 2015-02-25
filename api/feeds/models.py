@@ -48,8 +48,37 @@ class FeedManager(object):
         return feed.entrymodel_set.filter('pagingKey <', float(pagingKey)).filter('read = ', False).order('-pagingKey').run(limit=100)
 
     @classmethod
-    def getEntryById(cls, entryId):
-        return EntryModel.get_by_key_name(entryId)
+    def getEntryById(cls, feedId, entryId):
+        entry = EntryModel.get_by_key_name(entryId)
+        if entry:
+            return entry
+
+        return cls.getOldStyleEntry(feedId, entryId)
+
+    @classmethod
+    def getOldStyleEntry(cls, feedId, entryId):
+        feed = cls.getFeedById(feedId)
+        if not feed:
+            return None
+
+        oldEntry = EntryModel.get_by_key_name(entryId, parent=feed)
+        if not oldEntry:
+            return None
+
+        newEntry = EntryModel(key_name=entryId)
+        newEntry.feed = feed
+        newEntry.title = oldEntry.title
+        newEntry.url = oldEntry.url
+        newEntry.description = oldEntry.description
+        newEntry.read = oldEntry.read
+        newEntry.created = oldEntry.created
+        newEntry.modified = oldEntry.modified
+        newEntry.pagingKey = oldEntry.pagingKey
+
+        oldEntry.delete()
+        newEntry.put()
+
+        return newEntry
 
     @classmethod
     def setEntryStatus(cls, entry, status):
@@ -75,7 +104,7 @@ class FeedManager(object):
         for entryDict in parser.entries():
             key = entryDict['key']
 
-            entry = EntryModel.get_by_key_name(key)
+            entry = cls.getEntryById(feed.key().id(), key)
             if not entry:
                 entry = EntryModel(key_name=key)
                 entry.feed = feed
