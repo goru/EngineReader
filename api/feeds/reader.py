@@ -176,12 +176,8 @@ class MigrationStatusHandler(HandlerBase):
     def get(self):
         feeds = []
         for feed in models.FeedManager.getFeeds():
-            total = 0
-            for entry in models.FeedManager.getKeyOfOldStyleEntries(feed):
-                total += 1
-
             feedDict = feed.toDict()
-            feedDict['oldStyleEntry'] = total
+            feedDict['oldStyleEntry'] = models.FeedManager.getOldStyleEntries(feed).count()
             feeds.append(feedDict)
 
         self.writeJsonResponse({'feeds': feeds})
@@ -193,7 +189,7 @@ class MigrationExecuteHandler(HandlerBase):
             self.writeNoContentResponse()
 
         queue = taskqueue.Queue('low-priority-task')
-        for entryKey in models.FeedManager.getKeyOfOldStyleEntries(feed):
+        for entryKey in models.FeedManager.getOldStyleEntries(feed).run(keys_only=True):
             entryUrl = '/api/feeds/v0.2.0/migration/execute/' + feedId + '/' + entryKey.name()
             task = taskqueue.Task(url=entryUrl)
             queue.add(task)

@@ -81,8 +81,8 @@ class FeedManager(object):
         return newEntry
 
     @classmethod
-    def getKeyOfOldStyleEntries(cls, feed):
-        return EntryModel.gql('WHERE ANCESTOR IS :1', feed).run(keys_only=True)
+    def getOldStyleEntries(cls, feed):
+        return EntryModel.gql('WHERE ANCESTOR IS :1', feed)
 
     @classmethod
     def setEntryStatus(cls, entry, status):
