@@ -143,12 +143,12 @@ class ModelBase(db.Model):
         return updateRequired
 
 class FeedModel(ModelBase):
-    title = db.StringProperty(multiline=False)
-    url = db.StringProperty(multiline=False)
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now=True)
-    total = db.IntegerProperty(default=0)
-    unread = db.IntegerProperty(default=0)
+    title = db.StringProperty(indexed=False, multiline=False)
+    url = db.StringProperty(indexed=False, multiline=False)
+    created = db.DateTimeProperty(indexed=False, auto_now_add=True)
+    modified = db.DateTimeProperty(indexed=False, auto_now=True)
+    total = db.IntegerProperty(indexed=False, default=0)
+    unread = db.IntegerProperty(indexed=False, default=0)
 
     def fromDict(self, dic):
         return self.updateAttrFromDict(['title', 'url'], dic)
@@ -164,12 +164,12 @@ class FeedModel(ModelBase):
 
 class EntryModel(ModelBase):
     feed = db.ReferenceProperty(FeedModel)
-    title = db.StringProperty(multiline=False)
-    url = db.StringProperty(multiline=False)
-    description = db.TextProperty()
+    title = db.StringProperty(indexed=False, multiline=False)
+    url = db.StringProperty(indexed=False, multiline=False)
+    description = db.TextProperty(indexed=False)
     read = db.BooleanProperty(default=False)
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now=True)
+    created = db.DateTimeProperty(indexed=False, auto_now_add=True)
+    modified = db.DateTimeProperty(indexed=False, auto_now=True)
     pagingKey = db.FloatProperty()
 
     def setPagingKey(self, key):
