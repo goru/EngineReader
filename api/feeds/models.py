@@ -49,11 +49,13 @@ class FeedManager(object):
 
     @classmethod
     def getEntryById(cls, feedId, entryId):
-        entry = EntryModel.get_by_key_name(entryId)
-        if entry:
-            return entry
+        newEntry = EntryModel.get_by_key_name(entryId)
 
-        return cls.getOldStyleEntry(feedId, entryId)
+        oldEntry = cls.getOldStyleEntry(feedId, entryId)
+        if not oldEntry:
+            return newEntry
+
+        return cls.mergeEntry(newEntry, oldEntry)
 
     @classmethod
     def getOldStyleEntry(cls, feedId, entryId):
@@ -61,12 +63,14 @@ class FeedManager(object):
         if not feed:
             return None
 
-        oldEntry = EntryModel.get_by_key_name(entryId, parent=feed)
-        if not oldEntry:
-            return None
+        return EntryModel.get_by_key_name(entryId, parent=feed)
 
-        newEntry = EntryModel(key_name=entryId)
-        newEntry.feed = feed
+    @classmethod
+    def mergeEntry(cls, newEntry, oldEntry):
+        if not newEntry:
+            newEntry = EntryModel(key_name=oldEntry.key().name())
+
+        newEntry.feed = oldEntry.feed
         newEntry.title = oldEntry.title
         newEntry.url = oldEntry.url
         newEntry.description = oldEntry.description
