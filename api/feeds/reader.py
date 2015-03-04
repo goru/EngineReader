@@ -4,6 +4,7 @@
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
+from google.appengine.api import taskqueue
 
 import time
 
@@ -107,12 +108,13 @@ class FeedHandler(HandlerBase):
             self.writeNotFoundResponse()
             return
 
-        feeds = models.FeedManager.getAllEntriesByFeed(feed)
-        if not feeds:
-            self.writeNotFoundResponse()
-            return
+        entries = models.FeedManager.getAllEntriesByFeed(feed)
+        queue = taskqueue.Queue('low-priority-task')
+        for entry in entries:
+            entryUrl = '/api/feeds/' + feedId + '/' + entry.key().name()
+            task = taskqueue.Task(method='DELETE', url=entryUrl)
+            queue.add(task)
 
-        db.delete(feeds)
         feed.delete()
 
         self.writeNoContentResponse()
@@ -139,6 +141,25 @@ class FeedEntryHandler(HandlerBase):
 
         self.writeJsonResponse({'entries': entries})
 
+class EntryHandler(HandlerBase):
+    def get(self, feedId, entryId):
+        entry = models.FeedManager.getEntryById(feedId, entryId)
+        if not entry:
+            self.writeNotFoundResponse()
+            return
+
+        self.writeJsonResponse(entry.toDict())
+
+    def delete(self, feedId, entryId):
+        entry = models.FeedManager.getEntryById(feedId, entryId)
+        if not entry:
+            self.writeNotFoundResponse()
+            return
+
+        entry.delete()
+
+        self.writeNoContentResponse()
+
 class EntryReadUnreadHandler(HandlerBase):
     def post(self, feedId, entryId, action):
         entry = models.FeedManager.getEntryById(feedId, entryId)
@@ -151,17 +172,53 @@ class EntryReadUnreadHandler(HandlerBase):
 
         self.writeJsonResponse(entry.toDict())
 
-application = webapp.WSGIApplication(
-    [('/api/feeds/?', FeedsHandler),
-     ('/api/feeds/(all|unread)/?', FeedsEntryHandler),
-     ('/api/feeds/(all|unread)/([0-9.]+)/?', FeedsEntryHandler),
-     ('/api/feeds/import', FeedImportHandler),
-     ('/api/feeds/update', FeedUpdateHandler),
-     ('/api/feeds/(\d+)/?', FeedHandler),
-     ('/api/feeds/(\d+)/(all|unread)/?', FeedEntryHandler),
-     ('/api/feeds/(\d+)/(all|unread)/([0-9.]+)/?', FeedEntryHandler),
-     ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler)],
-    debug=True)
+class MigrationStatusHandler(HandlerBase):
+    def get(self):
+        feeds = []
+        for feed in models.FeedManager.getFeeds():
+            feedDict = feed.toDict()
+            feedDict['oldStyleEntry'] = models.FeedManager.getOldStyleEntries(feed).count()
+            feeds.append(feedDict)
+
+        self.writeJsonResponse({'feeds': feeds})
+
+class MigrationExecuteHandler(HandlerBase):
+    def get(self, feedId):
+        feed = models.FeedManager.getFeedById(feedId)
+        if not feed:
+            self.writeNoContentResponse()
+
+        queue = taskqueue.Queue('low-priority-task')
+        for entryKey in models.FeedManager.getOldStyleEntries(feed).run(keys_only=True):
+            entryUrl = '/api/feeds/v0.2.0/migration/execute/' + feedId + '/' + entryKey.name()
+            task = taskqueue.Task(url=entryUrl)
+            queue.add(task)
+
+        self.writeNoContentResponse()
+
+    def post(self, feedId, entryId):
+        entry = models.FeedManager.getEntryById(feedId, entryId)
+        if not entry:
+            self.writeNoContentResponse()
+            return
+
+        self.writeJsonResponse(entry.toDict())
+
+application = webapp.WSGIApplication([
+    ('/api/feeds/?', FeedsHandler),
+    ('/api/feeds/(all|unread)/?', FeedsEntryHandler),
+    ('/api/feeds/(all|unread)/([0-9.]+)/?', FeedsEntryHandler),
+    ('/api/feeds/import', FeedImportHandler),
+    ('/api/feeds/update', FeedUpdateHandler),
+    ('/api/feeds/(\d+)/?', FeedHandler),
+    ('/api/feeds/(\d+)/(all|unread)/?', FeedEntryHandler),
+    ('/api/feeds/(\d+)/(all|unread)/([0-9.]+)/?', FeedEntryHandler),
+    ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/?', EntryHandler),
+    ('/api/feeds/(\d+)/(entry-[a-z0-9]+)/(read|unread)', EntryReadUnreadHandler),
+    ('/api/feeds/v0.2.0/migration/status', MigrationStatusHandler),
+    ('/api/feeds/v0.2.0/migration/execute/(\d+)/?', MigrationExecuteHandler),
+    ('/api/feeds/v0.2.0/migration/execute/(\d+)/(entry-[a-z0-9]+)/?', MigrationExecuteHandler)
+    ], debug=True)
 
 def main():
     run_wsgi_app(application)

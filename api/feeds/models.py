@@ -21,7 +21,7 @@ class FeedManager(object):
 
     @classmethod
     def getFeeds(cls):
-        return FeedModel.all()
+        return FeedModel.all().run()
 
     @classmethod
     def getFeedById(cls, feedId):
@@ -29,31 +29,64 @@ class FeedManager(object):
 
     @classmethod
     def getEntries(cls, pagingKey):
-        return EntryModel.gql('WHERE pagingKey < :1 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey))
+        return EntryModel.all().filter('pagingKey <', float(pagingKey)).order('-pagingKey').run(limit=100)
 
     @classmethod
     def getAllEntriesByFeed(cls, feed):
-        return EntryModel.gql('WHERE ANCESTOR IS :1', feed)
+        return feed.entrymodel_set.order('-pagingKey').run()
 
     @classmethod
     def getUnreadEntries(cls, pagingKey):
-        return EntryModel.gql('WHERE pagingKey < :1 AND read = :2 ORDER BY pagingKey DESC LIMIT 100', float(pagingKey), False)
+        return EntryModel.all().filter('pagingKey <', float(pagingKey)).filter('read = ', False).order('-pagingKey').run(limit=100)
 
     @classmethod
     def getEntriesByFeed(cls, feed, pagingKey):
-        return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey))
+        return feed.entrymodel_set.filter('pagingKey <', float(pagingKey)).order('-pagingKey').run(limit=100)
 
     @classmethod
     def getUnreadEntriesByFeed(cls, feed, pagingKey):
-        return EntryModel.gql('WHERE ANCESTOR IS :1 AND pagingKey < :2 AND read = :3 ORDER BY pagingKey DESC LIMIT 100', feed, float(pagingKey), False)
+        return feed.entrymodel_set.filter('pagingKey <', float(pagingKey)).filter('read = ', False).order('-pagingKey').run(limit=100)
 
     @classmethod
     def getEntryById(cls, feedId, entryId):
+        newEntry = EntryModel.get_by_key_name(entryId)
+
+        oldEntry = cls.getOldStyleEntry(feedId, entryId)
+        if not oldEntry:
+            return newEntry
+
+        return cls.mergeEntry(newEntry, oldEntry)
+
+    @classmethod
+    def getOldStyleEntry(cls, feedId, entryId):
         feed = cls.getFeedById(feedId)
         if not feed:
             return None
 
         return EntryModel.get_by_key_name(entryId, parent=feed)
+
+    @classmethod
+    def mergeEntry(cls, newEntry, oldEntry):
+        if not newEntry:
+            newEntry = EntryModel(key_name=oldEntry.key().name())
+
+        newEntry.feed = oldEntry.feed
+        newEntry.title = oldEntry.title
+        newEntry.url = oldEntry.url
+        newEntry.description = oldEntry.description
+        newEntry.read = oldEntry.read
+        newEntry.created = oldEntry.created
+        newEntry.modified = oldEntry.modified
+        newEntry.pagingKey = oldEntry.pagingKey
+
+        oldEntry.delete()
+        newEntry.put()
+
+        return newEntry
+
+    @classmethod
+    def getOldStyleEntries(cls, feed):
+        return EntryModel.gql('WHERE ANCESTOR IS :1', feed)
 
     @classmethod
     def setEntryStatus(cls, entry, status):
@@ -79,9 +112,9 @@ class FeedManager(object):
         for entryDict in parser.entries():
             key = entryDict['key']
 
-            entry = EntryModel.get_by_key_name(key, parent=feed)
+            entry = cls.getEntryById(feed.key().id(), key)
             if not entry:
-                entry = EntryModel(parent=feed, key_name=key)
+                entry = EntryModel(key_name=key)
                 entry.feed = feed
 
                 feed.total += 1
@@ -114,12 +147,12 @@ class ModelBase(db.Model):
         return updateRequired
 
 class FeedModel(ModelBase):
-    title = db.StringProperty(multiline=False)
-    url = db.StringProperty(multiline=False)
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now=True)
-    total = db.IntegerProperty(default=0)
-    unread = db.IntegerProperty(default=0)
+    title = db.StringProperty(indexed=False, multiline=False)
+    url = db.StringProperty(indexed=False, multiline=False)
+    created = db.DateTimeProperty(indexed=False, auto_now_add=True)
+    modified = db.DateTimeProperty(indexed=False, auto_now=True)
+    total = db.IntegerProperty(indexed=False, default=0)
+    unread = db.IntegerProperty(indexed=False, default=0)
 
     def fromDict(self, dic):
         return self.updateAttrFromDict(['title', 'url'], dic)
@@ -135,12 +168,12 @@ class FeedModel(ModelBase):
 
 class EntryModel(ModelBase):
     feed = db.ReferenceProperty(FeedModel)
-    title = db.StringProperty(multiline=False)
-    url = db.StringProperty(multiline=False)
-    description = db.TextProperty()
+    title = db.StringProperty(indexed=False, multiline=False)
+    url = db.StringProperty(indexed=False, multiline=False)
+    description = db.TextProperty(indexed=False)
     read = db.BooleanProperty(default=False)
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now=True)
+    created = db.DateTimeProperty(indexed=False, auto_now_add=True)
+    modified = db.DateTimeProperty(indexed=False, auto_now=True)
     pagingKey = db.FloatProperty()
 
     def setPagingKey(self, key):
