@@ -267,6 +267,8 @@
           .append(footer.append(readBtn))
           .appendTo('#body');
 
+        body.find('img').attr({'style':'max-width:' + body.width() + 'px;max-height:' + body.width() + 'px;'});
+
         panel.click(function() {
           changePanel($(this), false);
         });
