@@ -98,13 +98,13 @@ class ModelBase(db.Model):
     def updateAttrFromDict(self, keys, dic):
         updateRequired = False
 
+        # title should be single line
+        if 'title' in dic:
+            dic['title'] = dic['title'].replace('\n', '').replace('\r', '')
+
         for key in keys:
             if getattr(self, key) != dic[key]:
-                if key == 'title':
-                    value = dic[key].replace('\n', '').replace('\r', '')
-                else:
-                    value = dic[key]
-                setattr(self, key, value)
+                setattr(self, key, dic[key])
                 updateRequired = True
 
         return updateRequired
